@@ -11,17 +11,13 @@
 import sgtk
 import os
 import sys
-import urlparse
-import re
-import logging
-import logging.handlers
+import time
 
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
 from sgtk.platform.qt import QtCore, QtGui
 
-#Dialog
-from .ui.dialog import Ui_Dialog
+overlay = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 
 
 def show_dialog(app_instance, entity_type=None, entity_ids=None):
@@ -33,55 +29,119 @@ def show_dialog(app_instance, entity_type=None, entity_ids=None):
     """
     # we pass the dialog class to this method and leave the actual construction
     # to be carried out by toolkit.
-    app_instance.engine.show_dialog("Submit Files to Shotgun", app_instance, AppDialog)
+    app_instance.engine.show_dialog("Submit Files to Shotgun", app_instance, Wizard)
 
 
-class AppDialog(QtGui.QWidget):
-    """
-    Main application dialog window
-    """
-    # Our own threadpool instance shared between app instances in the same engine
-    __thread_pool = QtCore.QThreadPool()
+class AThread(QtCore.QThread):
 
+    def run(self):
+        count = 0
+        while count < 5:
+            time.sleep(1)
+            count += 1
+
+    def stop(self):
+        self.terminate()
+
+class Wizard(QtGui.QWizard):
+
+    #Init and create the dialogs/add pages
     def __init__(self):
-        """
-        Build the app main window.
-        """
-        # first, call the base class and let it do its thing.
-        QtGui.QWidget.__init__(self)
 
-        #Load in the UI that was created in the UI designer
-        self.ui = Ui_Dialog()
-        self.ui.setupUi(self)
+        #Super Init
+        QtGui.QWizard.__init__(self)
+        
+        #Set name
+        self.setObjectName("Dialog")
 
-        # most of the useful accessors are available through the Application class instance
-        # it is often handy to keep a reference to this. You can get it via the following method:
+        #Set size/title
+        self.resize(600, 350)
+        self.setWindowTitle('Submit Files to Shotgun')
+
+        #Store reference to app
         self._app = sgtk.platform.current_bundle()
 
-        # self.display_exception("Context", [str(self._app.context)])
+        #Disable cancel button and back button of first page
+        self.setOptions(QtGui.QWizard.NoCancelButton | QtGui.QWizard.NoBackButtonOnStartPage)
 
-        # Close the dialog when asked to do it
-        # self.ui.button_box.rejected.connect(self.close_dialog)
+        #Add test page
+        self.addPage(self.createIntroPage())
+        self.addPage(self.createRegistrationPage())
+        self.addPage(self.createConclusionPage())
 
-        #Set the entity label
-        context = self._app.context
-        self.ui.entityLabel.setText("You clicked on %s %s" % (context.entity['type'], context.entity['name']))
+    def createIntroPage(self):
+        page = QtGui.QWizardPage()
+        page.setTitle("Introduction")
 
-        #Set ok 
-        # buttons = self.ui.button_box.buttons()
-        # self._ok_button = buttons[0]
-        # self._ok_button.setText("OK")
-        # self._ok_button.clicked.connect(self.okPressed)
+        label = QtGui.QLabel("This wizard will help you register your copy of "
+                "Super Product Two.")
+        label.setWordWrap(True)
 
-        #Set custom style
-        self.set_custom_style()
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(label)
+        page.setLayout(layout)
 
-    @QtCore.Slot()
-    def okPressed(self):
+        return page
+
+    def createRegistrationPage(self):
+
+        page = QtGui.QWizardPage()
+        page.setTitle("Registration")
+        page.setSubTitle("Please fill both fields.")
+
+        nameLabel = QtGui.QLabel("Name:")
+        nameLineEdit = QtGui.QLineEdit()
+
+        emailLabel = QtGui.QLabel("Email address:")
+        emailLineEdit = QtGui.QLineEdit()
+
+        layout = QtGui.QGridLayout()
+        layout.addWidget(nameLabel, 0, 0)
+        layout.addWidget(nameLineEdit, 0, 1)
+        layout.addWidget(emailLabel, 1, 0)
+        layout.addWidget(emailLineEdit, 1, 1)
+        page.setLayout(layout)
+
+        return page
+
+
+    def createConclusionPage(self):
+        page = QtGui.QWizardPage()
+        page.setTitle("Conclusion")
+
+        label = QtGui.QLabel("You are now successfully registered. Have a nice day!")
+        label.setWordWrap(True)
+
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(label)
+        page.setLayout(layout)
+
+        return page
+
+    #Make the Finish button actually close the dialog
+    def accept(self):
+
+        #Add shotgun widget overlay
+        try :
+
+            #Try thread
+            self._bgthread = AThread()
+            self._bgthread.finished.connect(self.threadFinished)
+            self._bgthread.start()
+
+            self._overlay = overlay.ShotgunOverlayWidget(self)
+            self._overlay.resize( 600, 350 )
+            self._overlay.start_spin()
+
+        except Exception as e : 
+            self.display_exception("Error", [str(e)])
+
+    def threadFinished(self):
+
+        self._bgthread.terminate()
         self.close()
-        self.display_exception("That worked!", ["You don't need to do anything.", "It worked!"])
 
-    @QtCore.Slot(str, list)
+    #Allow us to display useful data on screen
     def display_exception(self, msg, exec_info):
         """
         Display a popup window with the error message
@@ -101,6 +161,7 @@ class AppDialog(QtGui.QWidget):
         msg_box.raise_()
         msg_box.activateWindow()
 
+    #Ensure that esc will close the dialog
     def keyPressEvent(self, evt):
         """
         Catch keyPress event
@@ -119,54 +180,4 @@ class AppDialog(QtGui.QWidget):
             # or discard the close "order"
             self.close()
         # Fall back to base class implementation
-        super(AppDialog, self).keyPressEvent(evt)
-
-
-    @QtCore.Slot()
-    def close_dialog(self):
-        """
-        Shutdown the dialog
-        """
-        self.close()
-
-
-    # CSS
-
-    def set_custom_style(self):
-        """
-        Append our custom style to the inherited style sheet
-        """
-        self._css_watcher=None
-        this_folder = self._app.disk_location #os.path.abspath(os.path.dirname(__file__))
-        css_file = os.path.join(this_folder, "style.qss")
-        if os.path.exists(css_file):
-            self._load_css(css_file)
-
-    def _load_css(self, css_file):
-        """
-        Load the given css file
-
-        If css file watching was enabled, ensure the file is still in watched
-        files list
-
-        :param css_file: Full path to a css file
-        """
-        self.setStyleSheet("")
-        if os.path.exists(css_file):
-            # Re-attach a watcher everytime the file is changed, otherwise it
-            # seems the watcher is run only once ? Might be that some editors
-            # rename the edited file so the watcher thinks it went away
-            if self._css_watcher and css_file not in self._css_watcher.files():
-                self._css_watcher.addPath(css_file)
-            try:
-                # Read css file
-                f = open(css_file)
-                css_data = f.read()
-                # Append our add ons to current sytle sheet at the top widget
-                # level, children will inherit from it, without us affecting
-                # other apps for this engine
-                self.setStyleSheet(css_data)
-            except Exception,e:
-                self._app.log_warning( "Unable to read style sheet %s" % css_file )
-            finally:
-                f.close()
+        super(Wizard, self).keyPressEvent(evt)
