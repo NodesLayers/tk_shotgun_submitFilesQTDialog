@@ -13,6 +13,10 @@ import os
 import sys
 import time
 
+from startScreenWidget import StartScreenWidget
+from appSelectorWidget import AppSelectorWidget
+from fileDragDropBrowseWidget import FileDragDropBrowseWidget
+
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
 from sgtk.platform.qt import QtCore, QtGui
@@ -29,7 +33,7 @@ def show_dialog(app_instance, entity_type=None, entity_ids=None):
     """
     # we pass the dialog class to this method and leave the actual construction
     # to be carried out by toolkit.
-    app_instance.engine.show_dialog("Submit Files to Shotgun", app_instance, Wizard)
+    app_instance.engine.show_dialog("Submit Files to Shotgun", app_instance, Dialog)
 
 
 class AThread(QtCore.QThread):
@@ -43,13 +47,13 @@ class AThread(QtCore.QThread):
     def stop(self):
         self.terminate()
 
-class Wizard(QtGui.QWizard):
+class Dialog(QtGui.QDialog):
 
     #Init and create the dialogs/add pages
     def __init__(self):
 
         #Super Init
-        QtGui.QWizard.__init__(self)
+        QtGui.QDialog.__init__(self)
         
         #Set name
         self.setObjectName("Dialog")
@@ -61,62 +65,85 @@ class Wizard(QtGui.QWizard):
         #Store reference to app
         self._app = sgtk.platform.current_bundle()
 
-        #Disable cancel button and back button of first page
-        self.setOptions(QtGui.QWizard.NoCancelButton | QtGui.QWizard.NoBackButtonOnStartPage)
 
-        #Add test page
-        self.addPage(self.createIntroPage())
-        self.addPage(self.createRegistrationPage())
-        self.addPage(self.createConclusionPage())
+        try : 
 
-    def createIntroPage(self):
-        page = QtGui.QWizardPage()
-        page.setTitle("Introduction")
+            #Set main layout
+            self._layout = QtGui.QVBoxLayout()
+            self.setLayout(self._layout)
 
-        label = QtGui.QLabel("This wizard will help you register your copy of "
-                "Super Product Two.")
-        label.setWordWrap(True)
+            #Make the widgets - one widget per screen
+            self._startScreenWidget = StartScreenWidget(self)
+            self._auto_appSelectorWidget = AppSelectorWidget(self)
+            self._manual_fileDragDropBrowseWidget = FileDragDropBrowseWidget(self)
 
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(label)
-        page.setLayout(layout)
+            #Add all widgets
+            self._layout.addWidget(self._startScreenWidget)
+            self._layout.addWidget(self._auto_appSelectorWidget)
+            self._layout.addWidget(self._manual_fileDragDropBrowseWidget)
 
-        return page
+            # #Make dicts of widgets
+            self._widgetDict = {
 
-    def createRegistrationPage(self):
+                '1' : self._startScreenWidget,
+                '2' : self._auto_appSelectorWidget,
+                '3' : self._manual_fileDragDropBrowseWidget
 
-        page = QtGui.QWizardPage()
-        page.setTitle("Registration")
-        page.setSubTitle("Please fill both fields.")
+            }
 
-        nameLabel = QtGui.QLabel("Name:")
-        nameLineEdit = QtGui.QLineEdit()
-
-        emailLabel = QtGui.QLabel("Email address:")
-        emailLineEdit = QtGui.QLineEdit()
-
-        layout = QtGui.QGridLayout()
-        layout.addWidget(nameLabel, 0, 0)
-        layout.addWidget(nameLineEdit, 0, 1)
-        layout.addWidget(emailLabel, 1, 0)
-        layout.addWidget(emailLineEdit, 1, 1)
-        page.setLayout(layout)
-
-        return page
+            #Show first widget
+            self.showWidgetWithID(1)
 
 
-    def createConclusionPage(self):
-        page = QtGui.QWizardPage()
-        page.setTitle("Conclusion")
+        except Exception as e : 
+            self.display_exception("ERROR", [str(e)])
 
-        label = QtGui.QLabel("You are now successfully registered. Have a nice day!")
-        label.setWordWrap(True)
 
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(label)
-        page.setLayout(layout)
 
-        return page
+
+
+
+
+
+    '''
+
+    Handling Navigation
+
+    '''
+
+    def showWidgetWithID(self, widgetID):
+
+        #Loop through widgets in dict
+        for widgetIndex in self._widgetDict :
+
+            #Show the chosen widget
+            if widgetIndex == str(widgetID) :
+                self._widgetDict[widgetIndex].setVisible(True)
+                continue
+
+            #Hide the rest
+            self._widgetDict[widgetIndex].setVisible(False)
+
+
+    def autoModeSelected(self):
+        self.showWidgetWithID(2)
+
+    def manualModeSelected(self):
+        self.showWidgetWithID(3)
+
+
+
+
+
+
+
+
+
+    '''
+
+    Global functions
+
+    '''
 
     #Make the Finish button actually close the dialog
     def accept(self):
@@ -179,5 +206,8 @@ class Wizard(QtGui.QWizard):
             # This will call closeEvent to accept
             # or discard the close "order"
             self.close()
+        elif (key in [QtCore.Qt.Key_Escape]):
+            evt.accept()
+            self.close()
         # Fall back to base class implementation
-        super(Wizard, self).keyPressEvent(evt)
+        super(Dialog, self).keyPressEvent(evt)
