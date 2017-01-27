@@ -49,9 +49,7 @@ class FileInfoWidget(QtGui.QWidget):
 
         #Add layouts
         newLayout.addLayout(assetInfoLayout)
-        newLayout.addStretch(1)
         newLayout.addLayout(typeLayout)
-        newLayout.addStretch(1)
         newLayout.addLayout(commentLayout)
 
         #Add submit button
@@ -59,7 +57,6 @@ class FileInfoWidget(QtGui.QWidget):
         submitButton = QtGui.QPushButton("Submit")
         submitButtonLayout.addWidget(submitButton)
         submitButton.clicked.connect(self.submitButtonHit)
-        newLayout.addStretch(1)
         newLayout.addLayout(submitButtonLayout)
 
         #Add back button

@@ -18,6 +18,7 @@ from appSelectorWidget import AppSelectorWidget
 from progressSpinnerWidget import ProgressSpinnerWidget
 from fileResultsWidget import FileResultsWidget
 from fileInfoWidget import FileInfoWidget
+from fileNotInOutputFolderWidget import FileNotInOutputFolderWidget
 
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
@@ -78,6 +79,12 @@ class Dialog(QtGui.QDialog):
         self._files = []
         self._chosenFile = None
 
+        #Check paths exist
+        self._entityPaths = self.checkPathsExist()
+        if not self._entityPaths:
+            self.display_exception("No paths exist for this asset", [])
+            self.close()
+            return
 
         try : 
 
@@ -91,6 +98,7 @@ class Dialog(QtGui.QDialog):
             self._progressSpinnerWidget = ProgressSpinnerWidget(self, "Thinking...")
             self._fileResultsWidget = FileResultsWidget(self)
             self._fileInfoWidget = FileInfoWidget(self)
+            self._fileNotInOutputFolderWidget = FileNotInOutputFolderWidget(self)
 
             #Add all widgets
             self._layout.addWidget(self._startScreenWidget)
@@ -98,6 +106,7 @@ class Dialog(QtGui.QDialog):
             self._layout.addWidget(self._progressSpinnerWidget)
             self._layout.addWidget(self._fileResultsWidget)
             self._layout.addWidget(self._fileInfoWidget)
+            self._layout.addWidget(self._fileNotInOutputFolderWidget)
 
             # #Make dicts of widgets
             self._widgetDict = {
@@ -107,6 +116,7 @@ class Dialog(QtGui.QDialog):
                 '3' : self._progressSpinnerWidget,
                 '4' : self._fileResultsWidget,
                 '5' : self._fileInfoWidget,
+                '6' : self._fileNotInOutputFolderWidget,
 
             }
 
@@ -119,8 +129,17 @@ class Dialog(QtGui.QDialog):
 
 
 
+    '''
 
+    Check paths
 
+    '''
+
+    def checkPathsExist(self):
+        paths = self._context.filesystem_locations
+        if len(paths) == 0:
+            return None
+        return paths
 
 
 
@@ -148,28 +167,8 @@ class Dialog(QtGui.QDialog):
         self.showWidgetWithID(2)
 
     def browseButtonClicked(self):
-        
-        #Show a file browser
-        startDirectory = "~"
-        title = "Select file to Submit"
-        fileFilter = "Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
-        fname, filterMatch = QtGui.QFileDialog.getOpenFileName(self, title, startDirectory, fileFilter)
 
-        #Ensure that a file was chosen
-        if len(fname) == 0:
-            return
-
-        if not os.path.exists(fname):
-            return
-
-        #Store the chosen file
-        self._files = [fname]
-        self._chosenFile = fname
-
-        #Update and show the info page
-        self._fileInfoWidget.updateLabel()
-        self.showWidgetWithID(5)
-
+        self.startFileBrowser()
 
     def appSelectorButtonClicked(self):
         # self.display_exception("App Selected", [self.sender().text()])
@@ -186,6 +185,58 @@ class Dialog(QtGui.QDialog):
         #Start the search for files
 
 
+
+    '''
+
+    Browse button
+
+    '''
+
+    def startFileBrowser(self):
+
+        #Show a file browser
+        startDirectory = self._entityPaths[0]
+        title = "Select file to Submit"
+        fileFilter = "Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
+        fname, filterMatch = QtGui.QFileDialog.getOpenFileName(self, title, startDirectory, fileFilter)
+
+        #Ensure that a file was chosen
+        if len(fname) == 0:
+            return
+        if fname == None:
+            return
+
+        if not os.path.exists(fname):
+            return
+
+        #Store the chosen file
+        self._files = [fname]
+        self._chosenFile = fname
+
+        #Check if the file is within the asset directory
+        if self._entityPaths[0] not in self._chosenFile:
+            self.display_exception("File not in Asset Directory", ["The file you have chosen doesn't exist within the current Asset's directory structure, and cannot be submitted."])
+            return
+
+        #Check whether the file is in an output folder
+        if os.path.basename(os.path.dirname(self._chosenFile)) == "__OUTPUT" :
+            #The asset IS in an output directory. Go straight to the info page
+            self._fileInfoWidget.updateLabel()
+            self.showWidgetWithID(5)
+        else : 
+            #The asset is not in an output directory. 
+            #Get the closest output directory
+            closestOutputFolderPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT")
+
+            #Check it exists
+            if not os.path.exists(closestOutputFolderPath):
+                self.display_exception("Cannot find an associated __OUTPUT Folder for this file", ["The file you have chosen is not within a directory that contains an __OUTPUT folder. This means that it is NOT in a valid working directory and it cannot be uploaded to Shotgun.", "", "Please ensure that you always work in a valid directory."])
+                return
+
+            #File is in a valid working directory. Show copy page.
+            self._fileNotInOutputFolderWidget.updateLabel()
+            self.showWidgetWithID(6)
+            
 
 
 
