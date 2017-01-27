@@ -23,24 +23,25 @@ class StartScreenWidget(QtGui.QWidget):
         newLayout = QtGui.QVBoxLayout()
 
         #Make text label
-        label = QtGui.QLabel("Please choose whether you want Shotgun to find files automatically, or whether you want to manually upload a file :")
-        label.setWordWrap(True)
+        label = QtGui.QLabel("You are Submitting a file for :")
+        entityLabel = QtGui.QLabel("%s %s" % (parent._entity['type'], parent._entity['name']))
         newLayout.addWidget(label)
+        newLayout.addWidget(entityLabel)
 
         #Make button layout
         buttonLayout = QtGui.QHBoxLayout()
 
         #Make buttons
+        self._browseButton = QtGui.QPushButton("Browse for File")
         self._autoButton = QtGui.QPushButton("Automatic")
-        self._manualButton = QtGui.QPushButton("Manual")
 
         #Connect the buttons
+        self._browseButton.clicked.connect(self._parentUI.browseButtonClicked)
         self._autoButton.clicked.connect(self._parentUI.autoModeSelected)
-        self._manualButton.clicked.connect(self._parentUI.manualModeSelected)
 
         #Add buttons to button layout
+        buttonLayout.addWidget(self._browseButton)
         buttonLayout.addWidget(self._autoButton)
-        buttonLayout.addWidget(self._manualButton)
 
         #Add button layout to content layout
         newLayout.addLayout(buttonLayout)

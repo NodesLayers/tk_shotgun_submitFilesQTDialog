@@ -23,9 +23,34 @@ class AppSelectorWidget(QtGui.QWidget):
         newLayout = QtGui.QVBoxLayout()
 
         #Make text label
-        label = QtGui.QLabel("App Selector Widget")
-        label.setWordWrap(True)
+        label = QtGui.QLabel("Select the app associated with the new file :")
         newLayout.addWidget(label)
+
+        #Make grid layout for app buttons
+        gridLayout = QtGui.QGridLayout()
+        
+        #Get the apps 
+        apps = ['After Effects', 'Cinema4D', 'Illustrator', 'Maya', 'Nuke', 'Photoshop']
+
+        #Add buttons - maximum of 3 per row
+        maxButtonsPerRow = 3
+        for x, app in enumerate(apps) :
+
+            #Create button with app name
+            newButton = QtGui.QPushButton(app)
+
+            #Calculate where button sits in grid
+            row = x/maxButtonsPerRow
+            column = x - (maxButtonsPerRow*row)
+
+            #Add button to correct space
+            gridLayout.addWidget(newButton, row, column)
+
+            #Connect buttons
+            newButton.clicked.connect(self._parentUI.appSelectorButtonClicked)
+
+        #Add button layout
+        newLayout.addLayout(gridLayout)
 
         #Add layout to widget
         self.setLayout(newLayout)

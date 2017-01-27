@@ -10,5 +10,4 @@
 
 from . import appSelectorWidget
 from . import dialog
-from . import fileDragDropBrowseWidget
 from . import startScreenWidget

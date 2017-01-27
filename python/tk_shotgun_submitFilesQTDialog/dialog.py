@@ -15,7 +15,6 @@ import time
 
 from startScreenWidget import StartScreenWidget
 from appSelectorWidget import AppSelectorWidget
-from fileDragDropBrowseWidget import FileDragDropBrowseWidget
 
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
@@ -65,6 +64,15 @@ class Dialog(QtGui.QDialog):
         #Store reference to app
         self._app = sgtk.platform.current_bundle()
 
+        #Store reference to chosen context
+        self._context = self._app.context
+
+        #Store reference to entity
+        self._entity = self._context.entity
+
+        #Set vars to store values throughout the process
+        self._fileToUpload = None
+
 
         try : 
 
@@ -75,19 +83,16 @@ class Dialog(QtGui.QDialog):
             #Make the widgets - one widget per screen
             self._startScreenWidget = StartScreenWidget(self)
             self._auto_appSelectorWidget = AppSelectorWidget(self)
-            self._manual_fileDragDropBrowseWidget = FileDragDropBrowseWidget(self)
 
             #Add all widgets
             self._layout.addWidget(self._startScreenWidget)
             self._layout.addWidget(self._auto_appSelectorWidget)
-            self._layout.addWidget(self._manual_fileDragDropBrowseWidget)
 
             # #Make dicts of widgets
             self._widgetDict = {
 
                 '1' : self._startScreenWidget,
-                '2' : self._auto_appSelectorWidget,
-                '3' : self._manual_fileDragDropBrowseWidget
+                '2' : self._auto_appSelectorWidget
 
             }
 
@@ -126,10 +131,23 @@ class Dialog(QtGui.QDialog):
 
 
     def autoModeSelected(self):
+        #Progress to the auto page
         self.showWidgetWithID(2)
 
-    def manualModeSelected(self):
-        self.showWidgetWithID(3)
+    def browseButtonClicked(self):
+        #Show a file browser
+
+        startDirectory = "~"
+        title = "Select file to Submit"
+        fileFilter = "Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
+
+        fname, filterMatch = QtGui.QFileDialog.getOpenFileName(self, title, startDirectory, fileFilter)
+        self.display_exception("Open File", [fname, filterMatch])
+
+
+    def appSelectorButtonClicked(self):
+        self.display_exception("App Selected", [self.sender().text()])
+        
 
 
 
