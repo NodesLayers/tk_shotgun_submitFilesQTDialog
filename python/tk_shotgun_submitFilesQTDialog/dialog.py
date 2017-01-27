@@ -20,6 +20,8 @@ from progressSpinnerWidget import ProgressSpinnerWidget
 from fileResultsWidget import FileResultsWidget
 from fileInfoWidget import FileInfoWidget
 from fileNotInOutputFolderWidget import FileNotInOutputFolderWidget
+from uploadSuccessWidget import UploadSuccessWidget
+from uploadFailWidget import UploadFailWidget
 
 from ShotgunUploader import ShotgunUploader
 
@@ -70,8 +72,10 @@ class Dialog(QtGui.QDialog):
         self.resize(600, 350)
         self.setWindowTitle('Submit Files to Shotgun')
 
-        #Store reference to app
+        #Store reference to app, tank, shotgun
         self._app = sgtk.platform.current_bundle()
+        self._tank = self._app.tank
+        self._shotgun = self._app.shotgun
 
         #Store reference to chosen context
         self._context = self._app.context
@@ -117,6 +121,8 @@ class Dialog(QtGui.QDialog):
             self._fileResultsWidget = FileResultsWidget(self)
             self._fileInfoWidget = FileInfoWidget(self)
             self._fileNotInOutputFolderWidget = FileNotInOutputFolderWidget(self)
+            self._uploadSuccessWidget = UploadSuccessWidget(self)
+            self._uploadFailWidget = UploadFailWidget(self)
 
             #Add all widgets
             self._layout.addWidget(self._startScreenWidget)
@@ -125,6 +131,8 @@ class Dialog(QtGui.QDialog):
             self._layout.addWidget(self._fileResultsWidget)
             self._layout.addWidget(self._fileInfoWidget)
             self._layout.addWidget(self._fileNotInOutputFolderWidget)
+            self._layout.addWidget(self._uploadSuccessWidget)
+            self._layout.addWidget(self._uploadFailWidget)
 
             # #Make dicts of widgets
             self._widgetDict = {
@@ -135,6 +143,8 @@ class Dialog(QtGui.QDialog):
                 '4' : self._fileResultsWidget,
                 '5' : self._fileInfoWidget,
                 '6' : self._fileNotInOutputFolderWidget,
+                '7' : self._uploadSuccessWidget,
+                '8' : self._uploadFailWidget,
 
             }
 
@@ -194,11 +204,8 @@ class Dialog(QtGui.QDialog):
         #Set the chosen app
         self._auto_chosenApp = self.sender().text()
 
-        #Set the progress spinner message
-        self._progressSpinnerWidget.changeMessage("Looking for new %s files..." % self._auto_chosenApp)
-
         #Show the progress widget
-        self.showWidgetWithID(3)
+        self.showProgress("Looking for new %s files..." % self._auto_chosenApp)
 
         #Start the search for files
 
@@ -274,7 +281,7 @@ class Dialog(QtGui.QDialog):
             return
 
         #Show the progress widget
-        self.showWidgetWithID(3)
+        self.showProgress("Copying file into __OUTPUT folder...")
 
         #Start the thread
         try : 
@@ -320,15 +327,16 @@ class Dialog(QtGui.QDialog):
         #Get the data
         fileToSubmit = self._chosenFile
         versionType = self._fileInfoWidget._typeComboBox.currentText()
-        comment = self._fileInfoWidget._commentTextEdit.toPlainText()
+        comment = str(self._fileInfoWidget._commentTextEdit.toPlainText())
 
         #Set the data on the ShotgunUploader object
-        self._shotgunUploader.setData(fileToSubmit, versionType, comment)
+        self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment)
 
         #Show progress
-        self.showWidgetWithID(3)
+        self.showProgress("Submitting file...")
 
-        self.display_exception("ShotgunUploader", [self._shotgunUploader._filePath, self._shotgunUploader._versionType, self._shotgunUploader._comment])
+        #Do the version upload
+        self._shotgunUploader.uploadVersion()
 
 
     '''
@@ -336,6 +344,10 @@ class Dialog(QtGui.QDialog):
     Global functions
 
     '''
+
+    def showProgress(self, message):
+        self._progressSpinnerWidget.changeMessage(message)
+        self.showWidgetWithID(3)
 
     #Make the Finish button actually close the dialog
     def accept(self):
