@@ -16,6 +16,7 @@ import time
 from startScreenWidget import StartScreenWidget
 from appSelectorWidget import AppSelectorWidget
 from progressSpinnerWidget import ProgressSpinnerWidget
+from fileResultsWidget import FileResultsWidget
 
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
@@ -72,8 +73,8 @@ class Dialog(QtGui.QDialog):
         #Store reference to chosen app on auto path
         self._auto_chosenApp = None
 
-        #Set vars to store values throughout the process
-        self._fileToUpload = None
+        #Store reference to found/selected files
+        self._files = []
 
 
         try : 
@@ -86,11 +87,13 @@ class Dialog(QtGui.QDialog):
             self._startScreenWidget = StartScreenWidget(self)
             self._auto_appSelectorWidget = AppSelectorWidget(self)
             self._progressSpinnerWidget = ProgressSpinnerWidget(self, "Thinking...")
+            self._fileResultsWidget = FileResultsWidget(self)
 
             #Add all widgets
             self._layout.addWidget(self._startScreenWidget)
             self._layout.addWidget(self._auto_appSelectorWidget)
             self._layout.addWidget(self._progressSpinnerWidget)
+            self._layout.addWidget(self._fileResultsWidget)
 
             # #Make dicts of widgets
             self._widgetDict = {
@@ -98,6 +101,7 @@ class Dialog(QtGui.QDialog):
                 '1' : self._startScreenWidget,
                 '2' : self._auto_appSelectorWidget,
                 '3' : self._progressSpinnerWidget,
+                '4' : self._fileResultsWidget,
 
             }
 
@@ -139,14 +143,25 @@ class Dialog(QtGui.QDialog):
         self.showWidgetWithID(2)
 
     def browseButtonClicked(self):
+        
         #Show a file browser
-
         startDirectory = "~"
         title = "Select file to Submit"
         fileFilter = "Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
-
         fname, filterMatch = QtGui.QFileDialog.getOpenFileName(self, title, startDirectory, fileFilter)
-        self.display_exception("Open File", [fname, filterMatch])
+
+        #Ensure that a file was chosen
+        if len(fname) == 0:
+            return
+
+        if not os.path.exists(fname):
+            return
+
+        #Store the chosen file
+        self._files = [fname]
+
+        #Update and show the results page
+        self.showWidgetWithID(4)
 
 
     def appSelectorButtonClicked(self):
@@ -160,9 +175,8 @@ class Dialog(QtGui.QDialog):
 
         #Show the progress widget
         self.showWidgetWithID(3)
-        
 
-
+        #Start the search for files
 
 
 
