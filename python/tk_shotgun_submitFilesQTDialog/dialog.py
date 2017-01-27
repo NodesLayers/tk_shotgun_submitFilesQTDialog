@@ -12,6 +12,7 @@ import sgtk
 import os
 import sys
 import time
+import shutil
 
 from startScreenWidget import StartScreenWidget
 from appSelectorWidget import AppSelectorWidget
@@ -37,13 +38,17 @@ def show_dialog(app_instance, entity_type=None, entity_ids=None):
     app_instance.engine.show_dialog("Submit Files to Shotgun", app_instance, Dialog)
 
 
-class AThread(QtCore.QThread):
+class CopyFileToOutputFolderThread(QtCore.QThread):
+
+    def __init__(self, source, dest):
+        #Super Init
+        QtCore.QThread.__init__(self)
+        self._source = source
+        self._dest = dest
 
     def run(self):
-        count = 0
-        while count < 5:
-            time.sleep(1)
-            count += 1
+        #Do the copy
+        shutil.copy(self._source, self._dest)
 
     def stop(self):
         self.terminate()
@@ -78,6 +83,14 @@ class Dialog(QtGui.QDialog):
         #Store reference to found/selected files
         self._files = []
         self._chosenFile = None
+
+        #Store references for files being copied
+        self._sourceCopyPath = None
+        self._destCopyPath = None
+
+        #Store threads
+        self._copyThread = None
+        self._uploadThread = None
 
         #Check paths exist
         self._entityPaths = self.checkPathsExist()
@@ -236,10 +249,53 @@ class Dialog(QtGui.QDialog):
             #File is in a valid working directory. Show copy page.
             self._fileNotInOutputFolderWidget.updateLabel()
             self.showWidgetWithID(6)
+
+
+    '''
+
+    Copy functions
+
+    '''
+
+    def doCopy(self):
+        #Set the construct paths
+        self._sourceCopyPath = self._chosenFile
+        self._destCopyPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT", os.path.split(self._chosenFile)[1])
+
+        #Show the progress widget
+        self.showWidgetWithID(3)
+
+        #Start the thread
+        try : 
+            self._copyThread = CopyFileToOutputFolderThread(self._sourceCopyPath, self._destCopyPath)
+            self._copyThread.finished.connect(self.copyCompleted)
+            self._copyThread.start()
+        except Exception as e :
+            self.display_exception("THREAD ERROR", [e])
+            return
+
+
+
+    def copyCompleted(self):
+        self._copyThread.stop()
+        self._copyThread = None
+
+        #Check if things succeeded
+        if not os.path.exists(self._destCopyPath):
+            self.display_exception("Copy Error", ["The file copy process failed for an unknown reason. Please check with your Pipeline TD."])
+            self.showWidgetWithID(1)
+            return
             
+        #If they did, update the files/chosen file parameters to the new file
+        self._chosenFile = self._destCopyPath
+        self._files = [self._destCopyPath]    
 
+        #Remove the source/dest copy vals
+        self._sourceCopyPath = self._destCopyPath = None
 
-
+        #Now go to the 
+        self._fileInfoWidget.updateLabel()
+        self.showWidgetWithID(5)
 
 
     '''
