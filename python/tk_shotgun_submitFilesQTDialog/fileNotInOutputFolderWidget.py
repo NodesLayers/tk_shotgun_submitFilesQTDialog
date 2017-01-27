@@ -49,7 +49,6 @@ class FileNotInOutputFolderWidget(QtGui.QWidget):
     def copyButtonHit(self):
         self._parentUI.doCopy()
 
-
     def backButtonHit(self):
         self._parentUI.showWidgetWithID(1)
 

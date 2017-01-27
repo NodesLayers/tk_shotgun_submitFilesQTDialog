@@ -34,18 +34,21 @@ class FileInfoWidget(QtGui.QWidget):
 
         #Add type label and combo box
         typeLabel = QtGui.QLabel("Type")
-        typeComboBox = QtGui.QComboBox()
+        self._typeComboBox = QtGui.QComboBox()
+        self._typeComboBox.addItem("Test 1")
+        self._typeComboBox.addItem("Test 2")
+        self._typeComboBox.addItem("Test 3")
         typeLayout.addWidget(typeLabel)
-        typeLayout.addWidget(typeComboBox)
+        typeLayout.addWidget(self._typeComboBox)
 
         #Make layout for comment
         commentLayout = QtGui.QVBoxLayout()
 
         #Add comment label and box
         commentLabel = QtGui.QLabel("Comment (Optional)")
-        commentTextEdit = QtGui.QTextEdit()
+        self._commentTextEdit = QtGui.QTextEdit()
         commentLayout.addWidget(commentLabel)
-        commentLayout.addWidget(commentTextEdit)
+        commentLayout.addWidget(self._commentTextEdit)
 
         #Add layouts
         newLayout.addLayout(assetInfoLayout)
@@ -74,7 +77,7 @@ class FileInfoWidget(QtGui.QWidget):
         self._fileLabel.setText("File : %s" % self._parentUI._chosenFile)
 
     def submitButtonHit(self):
-        self._parentUI.showWidgetWithID(3)
+        self._parentUI.doSubmit()
 
     def backButtonHit(self):
         self._parentUI.showWidgetWithID(1)

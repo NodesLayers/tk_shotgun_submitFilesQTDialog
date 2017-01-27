@@ -15,3 +15,5 @@ from . import fileNotInOutputFolderWidget
 from . import fileResultsWidget
 from . import progressSpinnerWidget
 from . import startScreenWidget
+
+from . import ShotgunUploader

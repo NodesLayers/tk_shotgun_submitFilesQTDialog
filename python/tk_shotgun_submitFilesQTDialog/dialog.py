@@ -21,6 +21,8 @@ from fileResultsWidget import FileResultsWidget
 from fileInfoWidget import FileInfoWidget
 from fileNotInOutputFolderWidget import FileNotInOutputFolderWidget
 
+from ShotgunUploader import ShotgunUploader
+
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
 from sgtk.platform.qt import QtCore, QtGui
@@ -91,6 +93,9 @@ class Dialog(QtGui.QDialog):
         #Store threads
         self._copyThread = None
         self._uploadThread = None
+
+        #Setup shotgun uploader
+        self._shotgunUploader = ShotgunUploader()
 
         #Check paths exist
         self._entityPaths = self.checkPathsExist()
@@ -262,6 +267,12 @@ class Dialog(QtGui.QDialog):
         self._sourceCopyPath = self._chosenFile
         self._destCopyPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT", os.path.split(self._chosenFile)[1])
 
+        #Check that the dest path doesn't already exist
+        if os.path.exists(self._destCopyPath):
+            self.display_exception("File already exists", ['The file you are trying to copy already exists in the __OUTPUT directory. Choose that file instead, or change the name of the file you want to upload.'])
+            self.showWidgetWithID(1)
+            return
+
         #Show the progress widget
         self.showWidgetWithID(3)
 
@@ -300,23 +311,35 @@ class Dialog(QtGui.QDialog):
 
     '''
 
+    Submit Functions
+
+    '''
+
+    def doSubmit(self):
+
+        #Get the data
+        fileToSubmit = self._chosenFile
+        versionType = self._fileInfoWidget._typeComboBox.currentText()
+        comment = self._fileInfoWidget._commentTextEdit.toPlainText()
+
+        #Set the data on the ShotgunUploader object
+        self._shotgunUploader.setData(fileToSubmit, versionType, comment)
+
+        #Show progress
+        self.showWidgetWithID(3)
+
+        self.display_exception("ShotgunUploader", [self._shotgunUploader._filePath, self._shotgunUploader._versionType, self._shotgunUploader._comment])
+
+
+    '''
+
     Global functions
 
     '''
 
     #Make the Finish button actually close the dialog
     def accept(self):
-
-        #Add shotgun widget overlay
-        try :
-
-            #Try thread
-            self._bgthread = AThread()
-            self._bgthread.finished.connect(self.threadFinished)
-            self._bgthread.start()
-
-        except Exception as e : 
-            self.display_exception("Error", [str(e)])
+        pass
 
     def threadFinished(self):
 
