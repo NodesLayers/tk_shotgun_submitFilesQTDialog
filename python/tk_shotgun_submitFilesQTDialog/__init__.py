@@ -10,4 +10,5 @@
 
 from . import appSelectorWidget
 from . import dialog
+from . import progressSpinnerWidget
 from . import startScreenWidget

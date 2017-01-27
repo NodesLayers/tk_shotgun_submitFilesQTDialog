@@ -15,12 +15,11 @@ import time
 
 from startScreenWidget import StartScreenWidget
 from appSelectorWidget import AppSelectorWidget
+from progressSpinnerWidget import ProgressSpinnerWidget
 
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
 from sgtk.platform.qt import QtCore, QtGui
-
-overlay = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 
 
 def show_dialog(app_instance, entity_type=None, entity_ids=None):
@@ -70,6 +69,9 @@ class Dialog(QtGui.QDialog):
         #Store reference to entity
         self._entity = self._context.entity
 
+        #Store reference to chosen app on auto path
+        self._auto_chosenApp = None
+
         #Set vars to store values throughout the process
         self._fileToUpload = None
 
@@ -83,16 +85,19 @@ class Dialog(QtGui.QDialog):
             #Make the widgets - one widget per screen
             self._startScreenWidget = StartScreenWidget(self)
             self._auto_appSelectorWidget = AppSelectorWidget(self)
+            self._progressSpinnerWidget = ProgressSpinnerWidget(self, "Thinking...")
 
             #Add all widgets
             self._layout.addWidget(self._startScreenWidget)
             self._layout.addWidget(self._auto_appSelectorWidget)
+            self._layout.addWidget(self._progressSpinnerWidget)
 
             # #Make dicts of widgets
             self._widgetDict = {
 
                 '1' : self._startScreenWidget,
-                '2' : self._auto_appSelectorWidget
+                '2' : self._auto_appSelectorWidget,
+                '3' : self._progressSpinnerWidget,
 
             }
 
@@ -118,16 +123,15 @@ class Dialog(QtGui.QDialog):
 
     def showWidgetWithID(self, widgetID):
 
-        #Loop through widgets in dict
+        #Hide all widgets
         for widgetIndex in self._widgetDict :
+            self._widgetDict[widgetIndex].setVisible(False)
 
-            #Show the chosen widget
+        #Show the chosen widget
+        for widgetIndex in self._widgetDict :        
             if widgetIndex == str(widgetID) :
                 self._widgetDict[widgetIndex].setVisible(True)
-                continue
-
-            #Hide the rest
-            self._widgetDict[widgetIndex].setVisible(False)
+                break
 
 
     def autoModeSelected(self):
@@ -146,7 +150,16 @@ class Dialog(QtGui.QDialog):
 
 
     def appSelectorButtonClicked(self):
-        self.display_exception("App Selected", [self.sender().text()])
+        # self.display_exception("App Selected", [self.sender().text()])
+
+        #Set the chosen app
+        self._auto_chosenApp = self.sender().text()
+
+        #Set the progress spinner message
+        self._progressSpinnerWidget.changeMessage("Looking for new %s files..." % self._auto_chosenApp)
+
+        #Show the progress widget
+        self.showWidgetWithID(3)
         
 
 
@@ -173,10 +186,6 @@ class Dialog(QtGui.QDialog):
             self._bgthread = AThread()
             self._bgthread.finished.connect(self.threadFinished)
             self._bgthread.start()
-
-            self._overlay = overlay.ShotgunOverlayWidget(self)
-            self._overlay.resize( 600, 350 )
-            self._overlay.start_spin()
 
         except Exception as e : 
             self.display_exception("Error", [str(e)])

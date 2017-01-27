@@ -49,8 +49,20 @@ class AppSelectorWidget(QtGui.QWidget):
             #Connect buttons
             newButton.clicked.connect(self._parentUI.appSelectorButtonClicked)
 
-        #Add button layout
+        #Add application button layout
         newLayout.addLayout(gridLayout)
+
+        #Add back button
+        backButtonLayout = QtGui.QHBoxLayout()
+        backButton = QtGui.QPushButton("Back")
+        backButtonLayout.addWidget(backButton)
+        backButton.clicked.connect(self.backButtonHit)
+        newLayout.addStretch(1)
+        newLayout.addLayout(backButtonLayout)
 
         #Add layout to widget
         self.setLayout(newLayout)
+
+
+    def backButtonHit(self):
+        self._parentUI.showWidgetWithID(1)
