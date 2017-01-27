@@ -10,6 +10,7 @@
 
 from . import appSelectorWidget
 from . import dialog
+from . import fileInfoWidget
 from . import fileResultsWidget
 from . import progressSpinnerWidget
 from . import startScreenWidget

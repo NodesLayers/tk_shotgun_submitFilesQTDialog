@@ -17,6 +17,7 @@ from startScreenWidget import StartScreenWidget
 from appSelectorWidget import AppSelectorWidget
 from progressSpinnerWidget import ProgressSpinnerWidget
 from fileResultsWidget import FileResultsWidget
+from fileInfoWidget import FileInfoWidget
 
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
@@ -75,6 +76,7 @@ class Dialog(QtGui.QDialog):
 
         #Store reference to found/selected files
         self._files = []
+        self._chosenFile = None
 
 
         try : 
@@ -88,12 +90,14 @@ class Dialog(QtGui.QDialog):
             self._auto_appSelectorWidget = AppSelectorWidget(self)
             self._progressSpinnerWidget = ProgressSpinnerWidget(self, "Thinking...")
             self._fileResultsWidget = FileResultsWidget(self)
+            self._fileInfoWidget = FileInfoWidget(self)
 
             #Add all widgets
             self._layout.addWidget(self._startScreenWidget)
             self._layout.addWidget(self._auto_appSelectorWidget)
             self._layout.addWidget(self._progressSpinnerWidget)
             self._layout.addWidget(self._fileResultsWidget)
+            self._layout.addWidget(self._fileInfoWidget)
 
             # #Make dicts of widgets
             self._widgetDict = {
@@ -102,6 +106,7 @@ class Dialog(QtGui.QDialog):
                 '2' : self._auto_appSelectorWidget,
                 '3' : self._progressSpinnerWidget,
                 '4' : self._fileResultsWidget,
+                '5' : self._fileInfoWidget,
 
             }
 
@@ -159,9 +164,11 @@ class Dialog(QtGui.QDialog):
 
         #Store the chosen file
         self._files = [fname]
+        self._chosenFile = fname
 
-        #Update and show the results page
-        self.showWidgetWithID(4)
+        #Update and show the info page
+        self._fileInfoWidget.updateLabel()
+        self.showWidgetWithID(5)
 
 
     def appSelectorButtonClicked(self):
