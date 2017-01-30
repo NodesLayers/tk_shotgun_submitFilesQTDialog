@@ -28,9 +28,12 @@ class AppSelectorWidget(QtGui.QWidget):
 
         #Make grid layout for app buttons
         gridLayout = QtGui.QGridLayout()
-        
-        #Get the apps 
-        apps = ['After Effects', 'Cinema4D', 'Illustrator', 'Maya', 'Nuke', 'Photoshop']
+
+        #Get the correct apps
+        if self._parentUI._entity['type'] == "Asset":
+            apps = self._parentUI._assetApps
+        else :
+            apps = self._parentUI._shotApps
 
         #Add buttons - maximum of 3 per row
         maxButtonsPerRow = 3

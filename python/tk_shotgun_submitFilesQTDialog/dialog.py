@@ -24,6 +24,7 @@ from uploadSuccessWidget import UploadSuccessWidget
 from uploadFailWidget import UploadFailWidget
 
 from ShotgunUploader import ShotgunUploader
+from ShotgunFileFinder import ShotgunFileFinder
 
 # by importing QT from sgtk rather than directly, we ensure that
 # the code will be compatible with both PySide and PyQt.
@@ -76,6 +77,10 @@ class Dialog(QtGui.QDialog):
         self._app = sgtk.platform.current_bundle()
         self._tank = self._app.tank
         self._shotgun = self._app.shotgun
+
+        #Store reference to allowed apps
+        self._assetApps = self._app.get_setting("asset_apps")
+        self._shotApps = self._app.get_setting("shot_apps")
 
         #Store reference to chosen context
         self._context = self._app.context
@@ -207,9 +212,8 @@ class Dialog(QtGui.QDialog):
         #Show the progress widget
         self.showProgress("Looking for new %s files..." % self._auto_chosenApp)
 
-        #Start the search for files
-
-
+        #Start the search for files that aren't already associated with versions
+        self._shotgunFileFinder = ShotgunFileFinder(self._auto_chosenApp)
 
     '''
 

@@ -19,3 +19,4 @@ from . import uploadFailWidget
 from . import uploadSuccessWidget
 
 from . import ShotgunUploader
+from . import ShotgunFileFinder
