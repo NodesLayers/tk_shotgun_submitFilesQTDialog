@@ -36,22 +36,18 @@ class ProgressSpinnerWidget(QtGui.QWidget):
 
         #Add cancel button
         cancelButtonLayout = QtGui.QHBoxLayout()
-        cancelButton = QtGui.QPushButton("Cancel")
-        cancelButtonLayout.addWidget(cancelButton)
-        cancelButton.clicked.connect(self.cancelButtonHit)
+        self._cancelButton = QtGui.QPushButton("Cancel")
+        cancelButtonLayout.addWidget(self._cancelButton)
+        self._cancelButton.clicked.connect(self.cancelButtonHit)
         newLayout.addStretch(1)
         newLayout.addLayout(cancelButtonLayout)
 
         #Add layout to widget
         self.setLayout(newLayout)
 
-
-
     def changeMessage(self, newMessage):
         self._message = newMessage
         self._label.setText(self._message)
-
-
 
     def cancelButtonHit(self):
         self._parentUI.showWidgetWithID(1)

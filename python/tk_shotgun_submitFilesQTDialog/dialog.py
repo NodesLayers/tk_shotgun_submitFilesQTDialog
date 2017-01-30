@@ -318,8 +318,9 @@ class Dialog(QtGui.QDialog):
         #Remove the source/dest copy vals
         self._sourceCopyPath = self._destCopyPath = None
 
-        #Now go to the 
+        #Now go to the info screen
         self._fileInfoWidget.updateLabel()
+        self._fileInfoWidget._previousScreen = 'manual'
         self.showWidgetWithID(5)
 
 
@@ -334,7 +335,7 @@ class Dialog(QtGui.QDialog):
         #Get the data
         fileToSubmit = self._chosenFile
         versionType = self._fileInfoWidget._typeComboBox.currentText()
-        comment = str(self._fileInfoWidget._commentTextEdit.toPlainText())
+        comment = str(self._fileInfoWidget._commentTextEdit.text())
 
         #Set the mode of the uploader
         #If png or movie, mode is version
@@ -349,7 +350,7 @@ class Dialog(QtGui.QDialog):
         self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment, mode)
 
         #Show progress
-        self.showProgress("Submitting file...")
+        self.showProgress("Submitting file...", cancelHidden=False)
 
         #Do the version upload
         self._shotgunUploader.uploadFile()
@@ -394,6 +395,7 @@ class Dialog(QtGui.QDialog):
 
         #Update info screen and show
         self._fileInfoWidget.updateLabel()
+        self._fileInfoWidget._previousScreen = 'automatic'
         self.showWidgetWithID(5)
 
 
@@ -453,8 +455,9 @@ class Dialog(QtGui.QDialog):
 
         return "Other"
 
-    def showProgress(self, message):
+    def showProgress(self, message, cancelHidden=True):
         self._progressSpinnerWidget.changeMessage(message)
+        self._progressSpinnerWidget._cancelButton.setHidden(cancelHidden)
         self.showWidgetWithID(3)
 
     #Make the Finish button actually close the dialog

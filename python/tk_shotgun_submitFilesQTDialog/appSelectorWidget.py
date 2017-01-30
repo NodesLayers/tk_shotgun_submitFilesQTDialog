@@ -23,8 +23,10 @@ class AppSelectorWidget(QtGui.QWidget):
         newLayout = QtGui.QVBoxLayout()
 
         #Make text label
-        label = QtGui.QLabel("Select the app associated with the new file :")
+        label = QtGui.QLabel('<p style="font-size:16px">Select the app associated with the new file</p>')
+        label.setAlignment(QtCore.Qt.AlignCenter)
         newLayout.addWidget(label)
+        newLayout.addStretch(1)
 
         #Make grid layout for app buttons
         gridLayout = QtGui.QGridLayout()

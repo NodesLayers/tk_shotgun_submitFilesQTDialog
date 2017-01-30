@@ -22,15 +22,18 @@ class FileResultsWidget(QtGui.QWidget):
         #Set the main layout for the page
         newLayout = QtGui.QVBoxLayout()
 
+        #Store the data
+        self._currentData = []
+
         #Make text label
-        self._filesLabel = QtGui.QLabel("The following new files have been found :")
+        self._filesLabel = QtGui.QLabel('<p style="font-size:16px">These <b>%s</b> files haven\'t yet been uploaded to Shotgun</p>' % len(self._currentData))
+        self._filesLabel.setAlignment(QtCore.Qt.AlignCenter)
         newLayout.addWidget(self._filesLabel)
 
         #Try and add a table
         self._tableView = FileResultsTableView(self)
 
         #Setup the table model
-        self._currentData = []
         self._tableHeaders = ['File Name', 'Software', 'File Type', '']
         self._tableModel = FileResultsTableModel(self, self._currentData, self._tableHeaders)
 
@@ -45,18 +48,17 @@ class FileResultsWidget(QtGui.QWidget):
         newLayout.addWidget(self._tableView)
 
         #Add back button
-        cancelButtonLayout = QtGui.QHBoxLayout()
-        cancelButton = QtGui.QPushButton("Cancel")
-        cancelButtonLayout.addWidget(cancelButton)
-        cancelButton.clicked.connect(self.cancelButtonHit)
-        newLayout.addStretch(1)
-        newLayout.addLayout(cancelButtonLayout)
+        backButtonLayout = QtGui.QHBoxLayout()
+        backButton = QtGui.QPushButton("Back")
+        backButtonLayout.addWidget(backButton)
+        backButton.clicked.connect(self.backButtonHit)
+        newLayout.addLayout(backButtonLayout)
 
         #Add layout to widget
         self.setLayout(newLayout)
 
-    def cancelButtonHit(self):
-        self._parentUI.showWidgetWithID(1)
+    def backButtonHit(self):
+        self._parentUI.showWidgetWithID(2)
 
     def updateModelWithNewData(self, newData):
         #Data array is in form [ (filename, software, fileType, "", 'Full Path')  ]
@@ -67,6 +69,7 @@ class FileResultsWidget(QtGui.QWidget):
         self._tableView.setColumnHidden(4, True)
         self._tableView.resizeColumnsToContents()
         self._tableView.horizontalHeader().setStretchLastSection(True)
+        self._filesLabel.setText('<p style="font-size:16px">These <b>%s</b> files haven\'t yet been uploaded to Shotgun</p>' % len(self._currentData))
 
 
 class FileResultsTableView(QtGui.QTableView):

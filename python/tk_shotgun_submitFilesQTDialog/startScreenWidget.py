@@ -23,10 +23,14 @@ class StartScreenWidget(QtGui.QWidget):
         newLayout = QtGui.QVBoxLayout()
 
         #Make text label
-        label = QtGui.QLabel("You are Submitting a file for :")
-        entityLabel = QtGui.QLabel("%s %s" % (parent._entity['type'], parent._entity['name']))
+        newLayout.addStretch(1)
+        label = QtGui.QLabel('<p style="font-size:16px">You are Submitting a file for the %s</p>' % parent._entity['type'])
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        entityLabel = QtGui.QLabel('<p style="font-size:32px">%s</p>' % (parent._entity['name']))
+        entityLabel.setAlignment(QtCore.Qt.AlignCenter)
         newLayout.addWidget(label)
         newLayout.addWidget(entityLabel)
+        newLayout.addStretch(1)
 
         #Make button layout
         buttonLayout = QtGui.QHBoxLayout()
