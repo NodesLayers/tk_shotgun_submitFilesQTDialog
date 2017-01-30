@@ -357,6 +357,28 @@ class Dialog(QtGui.QDialog):
 
     '''
 
+    File Finder
+
+
+    '''
+
+    def fileFinderFinished(self):
+
+        #Need to update the info model
+        newModelData = []
+        for fileToUpload in self._shotgunFileFinder._filesThatArentInShotgun:
+            fileName = os.path.split(fileToUpload)[1]
+            software = "BLANK"
+            fileType = "BLANK"
+            newModelData.append((fileName, software, fileType, ""))
+        self._fileResultsWidget.updateModelWithNewData(newModelData)
+
+        #Show the info screen
+        self.showWidgetWithID(4)
+
+
+    '''
+
     Global functions
 
     '''

@@ -68,9 +68,12 @@ class ShotgunFileFinder(object):
         self._backgroundThread.start()
 
     def fileFinderBGThreadFinished(self):
-        joinedNonSGFiles = '\n'.join(self._filesThatArentInShotgun)
-        joinedSGFiles = '\n'.join(self._existingFilePaths)
-        self._dialog.showProgress("BG Thread finished. Found %s existing Versions, and %s existing Publishes.\n\nThere are %s filepaths associated with those SG assets.\n\nThere are %s files not uploaded.\n\nThose files are :\n%s\n\nAlready on SG :\n%s" % ( len( self._existingVersions ), len( self._existingPublishes ), len( self._existingFilePaths ), len( self._filesThatArentInShotgun ),  joinedNonSGFiles, joinedSGFiles ) )
+        # joinedNonSGFiles = '\n'.join(self._filesThatArentInShotgun)
+        # joinedSGFiles = '\n'.join(self._existingFilePaths)
+        # self._dialog.showProgress("BG Thread finished. Found %s existing Versions, and %s existing Publishes.\n\nThere are %s filepaths associated with those SG assets.\n\nThere are %s files not uploaded.\n\nThose files are :\n%s\n\nAlready on SG :\n%s" % ( len( self._existingVersions ), len( self._existingPublishes ), len( self._existingFilePaths ), len( self._filesThatArentInShotgun ),  joinedNonSGFiles, joinedSGFiles ) )
+
+        #Finish
+        self._dialog.fileFinderFinished()
 
     def setupTemplate(self):
 

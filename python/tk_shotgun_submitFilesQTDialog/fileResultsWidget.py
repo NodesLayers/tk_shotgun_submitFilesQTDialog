@@ -30,7 +30,7 @@ class FileResultsWidget(QtGui.QWidget):
         self._tableView = FileResultsTableView(self._parentUI)
 
         #Setup the table model
-        self._testData = [("My File.png", "After Effects", "Image", "Submit this File"), ("Another File that is longer.mov", "After Effects", "Movie", "Submit this File")]
+        self._testData = [("My File.png", "After Effects", "Image", ""), ("Another New", "After Effects", "Movie", ""), ("Another File that is longer.mov", "Test", "Movie", "")]
         self._tableHeaders = ['File Name', 'Software', 'File Type', '']
         self._tableModel = FileResultsTableModel(self, self._testData, self._tableHeaders)
 
@@ -56,6 +56,13 @@ class FileResultsWidget(QtGui.QWidget):
     def cancelButtonHit(self):
         self._parentUI.showWidgetWithID(1)
 
+    def updateModelWithNewData(self, newData):
+        #Data array is in form [ (filename, software, fileType, "")  ]
+        self._tableModel = None
+        self._tableModel = FileResultsTableModel(self, newData, self._tableHeaders)
+        self._tableView.setModel(self._tableModel)
+
+
 class FileResultsTableView(QtGui.QTableView):
     """
     A simple table to demonstrate the button delegate.
@@ -76,23 +83,23 @@ class FileResultsTableView(QtGui.QTableView):
         self._parentUI.display_exception("Button %s clicked" % clickedItemIndex, [])
 
 class FileResultsTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, parent, mylist, header, *args):
+    def __init__(self, parent, dataList, header, *args):
         QtCore.QAbstractTableModel.__init__(self, parent, *args)
-        self.mylist = mylist
+        self.dataList = dataList
         self.header = header
 
     def rowCount(self, parent):
-        return len(self.mylist)
+        return len(self.dataList)
 
     def columnCount(self, parent):
-        return len(self.mylist[0])
+        return len(self.dataList[0])
 
     def data(self, index, role):
         if not index.isValid():
             return None
         elif role != QtCore.Qt.DisplayRole:
             return None
-        return self.mylist[index.row()][index.column()]
+        return self.dataList[index.row()][index.column()]
 
     def headerData(self, col, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
