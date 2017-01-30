@@ -8,36 +8,40 @@ from sgtk.platform.qt import QtCore, QtGui
 
 class ShotgunFileFinder(object):
 
-	def __init__(self, dialog, appButtonText):
-		self._dialog = dialog
-		self._appToSearch = appButtonText.replace(" ", "").lower()
-		self._appFolder = self.getAppFolderForCurrentContext()
+    def __init__(self, dialog, appButtonText):
 
-	def getAppFolderForCurrentContext(self):
+        self._dialog = dialog
+        self._appToSearch = appButtonText.replace(" ", "").lower()
+        self._entityType = self._dialog._entity['type']
+        self._templateName = "submitFilesToShotgun_%s_%s" % (self._entityType.lower(), self._appToSearch)
+        self._template = self._dialog._tank.templates[self._templateName]
 
-		#Check the entity type
-        # entityType = dialog._entity['type']
+        #If you can't find a template for the given app set the finder to invalid
+        self._isValid = False
+        if self._template == None:
+            self._appFolder = None
+            self._templateFields = None
+        else : 
+            self._templateFields = self._dialog._context.as_template_fields(self._template)
+            self._appFolder = self._template.apply_fields(self._templateFields)
 
-        # #Set the template
-        # templateName = None
-        # if entityType == 'Shot':
-        #     templateName = shotTemplate
-        # elif entityType == 'Asset': 
-        #     templateName = assetTemplate
-        # elif entityType == 'CustomEntity05': #Previs
-        #     templateName = previsTemplate
-        # else : 
-        #     return None
+            #Check folder exists
+            if os.path.exists(self._appFolder):
+                self._isValid = True
 
-        # #Get the resolved path
-        # #Get template and template fields
-        # tank = context.tank
-        # template = tank.templates[templateName]
-        # template_fields = context.as_template_fields(template)
-        # template_fields['version'] = 1
-        # if entityType == 'CustomEntity05':
-        #     template_fields['previs'] = context.entity['name']
-        # resolvedPath = template.apply_fields(template_fields)
-        # folderPath, fileName = os.path.split(resolvedPath)
+        #If it's valid, set the output folders
+        self._outputFolders = []
+        if self._isValid == True :
+            #Find any folders called __OUTPUT below the self._appFolder
+            self._outputFolders = [root for root, subFolders, files in os.walk(self._appFolder) if '__OUTPUT' in root]
 
-		return "TEST FOLDER"
+        #For each output folder list the files
+        self._allFiles = []
+        ignoreFiles = [".DS_Store"]
+        for outputFolder in self._outputFolders : 
+            self._allFiles.extend( [os.path.join(outputFolder, f) for f in os.listdir(outputFolder) if f not in ignoreFiles and os.path.isfile(os.path.join(outputFolder, f))] )
+
+
+        '''
+        At this point we have a list of all files that exist for the choosen app on the current entity
+        '''
