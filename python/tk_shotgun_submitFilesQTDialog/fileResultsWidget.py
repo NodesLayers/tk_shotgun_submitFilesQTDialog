@@ -27,17 +27,19 @@ class FileResultsWidget(QtGui.QWidget):
         newLayout.addWidget(self._filesLabel)
 
         #Try and add a table
-        self._tableView = FileResultsTableView(self._parentUI)
+        self._tableView = FileResultsTableView(self)
 
         #Setup the table model
-        self._testData = [("My File.png", "After Effects", "Image", ""), ("Another New", "After Effects", "Movie", ""), ("Another File that is longer.mov", "Test", "Movie", "")]
+        self._currentData = []
         self._tableHeaders = ['File Name', 'Software', 'File Type', '']
-        self._tableModel = FileResultsTableModel(self, self._testData, self._tableHeaders)
+        self._tableModel = FileResultsTableModel(self, self._currentData, self._tableHeaders)
 
         #Set the tableview to use the model
         self._tableView.setModel(self._tableModel)
         self._tableView.resizeColumnsToContents()
-        self._tableView.setSortingEnabled(False)
+        self._tableView.setSortingEnabled(True)
+        self._tableView.setColumnHidden(4, True)
+        self._tableView.horizontalHeader().setStretchLastSection(True)
 
         #Add the table to the layout
         newLayout.addWidget(self._tableView)
@@ -57,10 +59,14 @@ class FileResultsWidget(QtGui.QWidget):
         self._parentUI.showWidgetWithID(1)
 
     def updateModelWithNewData(self, newData):
-        #Data array is in form [ (filename, software, fileType, "")  ]
+        #Data array is in form [ (filename, software, fileType, "", 'Full Path')  ]
         self._tableModel = None
-        self._tableModel = FileResultsTableModel(self, newData, self._tableHeaders)
+        self._currentData = newData
+        self._tableModel = FileResultsTableModel(self, self._currentData, self._tableHeaders)
         self._tableView.setModel(self._tableModel)
+        self._tableView.setColumnHidden(4, True)
+        self._tableView.resizeColumnsToContents()
+        self._tableView.horizontalHeader().setStretchLastSection(True)
 
 
 class FileResultsTableView(QtGui.QTableView):
@@ -76,11 +82,14 @@ class FileResultsTableView(QtGui.QTableView):
         self._buttonDelegate = ButtonDelegate(self)
         self.setItemDelegateForColumn(3, self._buttonDelegate)
  
-    def cellButtonClicked(self):
+    def cellButtonClicked(self, rowID):
 
-        #Get clicked item index
-        clickedItemIndex = int(self.sender().text().split(" ")[-1])
-        self._parentUI.display_exception("Button %s clicked" % clickedItemIndex, [])
+        #Get file to upload
+        fileToUpload = self._parentUI._currentData[rowID][4]
+        # self._parentUI._parentUI.display_exception("Submit Details", [str(rowID), str(fileToUpload)] )
+
+        #Call to the main UI
+        self._parentUI.parent().autoFileSelectedForSubmit(fileToUpload)
 
 class FileResultsTableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent, dataList, header, *args):
@@ -118,8 +127,8 @@ class ButtonDelegate(QtGui.QItemDelegate):
  
     def paint(self, painter, option, index):
         if not self.parent().indexWidget(index):
-            button = QtGui.QPushButton("Submit Item %s" % (index.row()+1), self.parent())
-            button.clicked.connect(self.parent().cellButtonClicked)
+            button = QtGui.QPushButton("Submit this item", self.parent())
+            button.clicked.connect(lambda: self.parent().cellButtonClicked(index.row()))
             self.parent().setIndexWidget(
                 index, 
                 button

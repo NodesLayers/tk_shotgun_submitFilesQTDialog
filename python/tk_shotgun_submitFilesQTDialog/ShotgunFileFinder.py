@@ -27,7 +27,7 @@ class ShotgunFileFinderBGThread(QtCore.QThread):
         #Get files
         self._fileFinder.findAllFilesInFolders()
 
-        #Get all publishes/versions on the server
+        # Get all publishes/versions on the server
         self._fileFinder.findAllVersionsAndPublishesOnSG()
 
         #Get a list of all files that do not exist as versions/publishes on SG
@@ -56,11 +56,13 @@ class ShotgunFileFinder(object):
             else :
                 self._appsToSearch = [x.replace(" ", "").lower() for x in self._dialog._shotApps]
 
-        self._appFolders = []
+        self._appFolders = {}
+        self._outputFolders = {}
         self._existingVersions = []
         self._existingPublishes = []
         self._existingFilePaths = []
-        self._filesThatArentInShotgun = []
+        self._allFiles = {}
+        self._filesThatArentInShotgun = {}
 
         #Do the upload
         self._backgroundThread = ShotgunFileFinderBGThread(self)
@@ -71,6 +73,17 @@ class ShotgunFileFinder(object):
         # joinedNonSGFiles = '\n'.join(self._filesThatArentInShotgun)
         # joinedSGFiles = '\n'.join(self._existingFilePaths)
         # self._dialog.showProgress("BG Thread finished. Found %s existing Versions, and %s existing Publishes.\n\nThere are %s filepaths associated with those SG assets.\n\nThere are %s files not uploaded.\n\nThose files are :\n%s\n\nAlready on SG :\n%s" % ( len( self._existingVersions ), len( self._existingPublishes ), len( self._existingFilePaths ), len( self._filesThatArentInShotgun ),  joinedNonSGFiles, joinedSGFiles ) )
+        self._dialog.showProgress('''
+BG THREAD FINISHED
+
+There are %s apps to search
+There are %s stored app folder arrays
+There are %s stored output folder arrays
+There are %s stored existing file arrays
+There are %s existing versions and %s existing publishes
+These include %s existing file paths
+There are %s stored files not in SG arrays
+''' % (len(self._appsToSearch), len(self._appFolders), len(self._outputFolders), len(self._allFiles), len(self._existingVersions), len(self._existingPublishes), len(self._existingFilePaths), len(self._filesThatArentInShotgun) ))
 
         #Finish
         self._dialog.fileFinderFinished()
@@ -81,6 +94,9 @@ class ShotgunFileFinder(object):
 
         #Loop through every app we need to search
         for app in self._appsToSearch:
+
+            #Store folders
+            currentAppFolderPaths = []
 
             #Get the template name for that app
             currentAppTemplateName = "submitFilesToShotgun_%s_%s" % (self._entityType.lower(), app)
@@ -98,21 +114,32 @@ class ShotgunFileFinder(object):
 
             #If it's a valid template, add the app path
             if isValidTemplate:
-                self._appFolders.append(currentAppFolderPath)
+                currentAppFolderPaths.append(currentAppFolderPath)
+
+            #Update main dict
+            self._appFolders[app] = currentAppFolderPaths
 
 
     def setupOutputFolders(self):
-        self._outputFolders = []
-        for appFolder in self._appFolders:
-            #Find any folders called __OUTPUT below the self._appFolder
-            self._outputFolders.extend([root for root, subFolders, files in os.walk(appFolder) if '__OUTPUT' in root])
+        for app in self._appFolders:
+            currentAppOutputFolders = []
+            for appFolderPath in self._appFolders[app]:
+                #Find any folders called __OUTPUT below the self._appFolder
+                currentAppOutputFolders.extend([root for root, subFolders, files in os.walk(appFolderPath) if '__OUTPUT' in root])
+
+            #Store output folders for current app
+            self._outputFolders[app] = currentAppOutputFolders
 
     def findAllFilesInFolders(self):
         #For each output folder list the files
-        self._allFiles = []
         ignoreFiles = [".DS_Store"]
-        for outputFolder in self._outputFolders : 
-            self._allFiles.extend( [os.path.join(outputFolder, f) for f in os.listdir(outputFolder) if f not in ignoreFiles and os.path.isfile(os.path.join(outputFolder, f))] )
+        for app in self._outputFolders:
+            currentAppFiles = []
+            for outputFolder in self._outputFolders[app] : 
+                currentAppFiles.extend( [os.path.join(outputFolder, f) for f in os.listdir(outputFolder) if f not in ignoreFiles and os.path.isfile(os.path.join(outputFolder, f))] )
+
+            #Store current files for app
+            self._allFiles[app] = currentAppFiles
 
 
     def findAllVersionsAndPublishesOnSG(self):
@@ -139,10 +166,16 @@ class ShotgunFileFinder(object):
 
         #For each file we want to upload, check if it's in the existing paths.
         #If it is, skip, if not, store
-        self._filesThatArentInShotgun = []
-        for localFilePath in self._allFiles:
-            if localFilePath not in self._existingFilePaths:
-                self._filesThatArentInShotgun.append(localFilePath)
+        for app in self._allFiles :
+
+            filesNotInSG = []
+
+            for localFilePath in self._allFiles[app]:
+                if localFilePath not in self._existingFilePaths:
+                    filesNotInSG.append(localFilePath)
+
+            #Store the files per app
+            self._filesThatArentInShotgun[app] = filesNotInSG
 
 
 

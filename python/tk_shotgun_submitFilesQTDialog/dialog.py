@@ -366,15 +366,36 @@ class Dialog(QtGui.QDialog):
 
         #Need to update the info model
         newModelData = []
-        for fileToUpload in self._shotgunFileFinder._filesThatArentInShotgun:
-            fileName = os.path.split(fileToUpload)[1]
-            software = "BLANK"
-            fileType = "BLANK"
-            newModelData.append((fileName, software, fileType, ""))
+        for app in self._shotgunFileFinder._filesThatArentInShotgun:
+            for fileToUpload in self._shotgunFileFinder._filesThatArentInShotgun[app]:
+                fileName = os.path.split(fileToUpload)[1]
+                software = app
+                fileType = self.returnPublishTypeForFile(fileName)
+                fullPath = fileToUpload
+                newModelData.append((fileName, software, fileType, "", fullPath))
         self._fileResultsWidget.updateModelWithNewData(newModelData)
 
         #Show the info screen
         self.showWidgetWithID(4)
+
+
+
+    '''
+
+    Auto find file submission
+
+    '''
+
+    def autoFileSelectedForSubmit(self, fileToUpload):
+
+        #Update vars
+        self._files = [fileToUpload]
+        self._chosenFile = fileToUpload
+
+        #Update info screen and show
+        self._fileInfoWidget.updateLabel()
+        self.showWidgetWithID(5)
+
 
 
     '''
@@ -382,6 +403,55 @@ class Dialog(QtGui.QDialog):
     Global functions
 
     '''
+
+    def returnPublishTypeForFile(self, fileString):
+        '''
+        3D Export - abc, obj, fbx
+        After Effects Project - aep
+        Cinema4D Project - c4d
+        Illustrator File - ai
+        Image - png, jpg, tiff, tif, bmp, gif
+        Image (VFX) - exr, dpx
+        Maya Scene - ma, mb
+        Nuke Script - nk
+        Other - ANYTHING ELSE
+        Photoshop File - psd, psb
+        Quicktime - mp4, mov
+        '''
+        fileName, fileExtensionWithDot = os.path.splitext(os.path.basename(fileString))
+        fileExtension = fileExtensionWithDot.replace(".", "")
+
+        if fileExtension in ['abc', 'obj', 'fbx']:
+            return '3D Export'
+    
+        if fileExtension in ['aep']:
+            return 'After Effects Project'        
+
+        if fileExtension in ['c4d']:
+            return 'Cinema4D Project'
+
+        if fileExtension in ['ai']:
+            return 'Illustrator File'
+
+        if fileExtension in ['png', 'jpg', 'tiff', 'tif', 'bmp', 'gif']:
+            return 'Image'
+
+        if fileExtension in ['exr', 'dpx']:
+            return 'Image (VFX)'
+
+        if fileExtension in ['ma', 'mb']:
+            return 'Maya Scene'
+
+        if fileExtension in ['nk']:
+            return 'Nuke Script'
+
+        if fileExtension in ['psd', 'psb']:
+            return 'Photoshop File'
+
+        if fileExtension in ['mov', 'mp4']:
+            return 'Quicktime'
+
+        return "Other"
 
     def showProgress(self, message):
         self._progressSpinnerWidget.changeMessage(message)
