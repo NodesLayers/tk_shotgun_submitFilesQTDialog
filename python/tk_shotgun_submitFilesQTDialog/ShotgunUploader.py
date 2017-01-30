@@ -117,6 +117,7 @@ class ShotgunUploader(object):
             self._versionData['sg_path_to_movie'] = self._filePath
             self._versionData['description'] = self._comment
             self._versionData['sg_task'] = self._context.task
+            self._versionData['sg_version_type'] = self._versionType
 
         elif self._mode == 'publish':
 
