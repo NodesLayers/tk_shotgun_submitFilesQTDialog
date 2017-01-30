@@ -222,8 +222,9 @@ class Dialog(QtGui.QDialog):
         #Show a file browser
         startDirectory = self._entityPaths[0]
         title = "Select file to Submit"
-        fileFilter = "Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
-        fname, filterMatch = QtGui.QFileDialog.getOpenFileName(self, title, startDirectory, fileFilter)
+        # fileFilter = "Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
+        # fileFilter = "Images (*.png *.jpg *.tiff *.tif *.bmp *.exr *.dpx);;Project Files (*.psd *.ai *.aep *.c4d *.ma *.mb *.nk *.psb);;3D Exports (*.abc *.fbx *.obj)"
+        fname, filterMatch = QtGui.QFileDialog.getOpenFileName(self, title, startDirectory)
 
         #Ensure that a file was chosen
         if len(fname) == 0:
@@ -329,14 +330,23 @@ class Dialog(QtGui.QDialog):
         versionType = self._fileInfoWidget._typeComboBox.currentText()
         comment = str(self._fileInfoWidget._commentTextEdit.toPlainText())
 
+        #Set the mode of the uploader
+        #If png or movie, mode is version
+        #If ANYTHING ELSE, mode is publish
+        fileName, fileExt = os.path.splitext(fileToSubmit)
+        if fileExt in ['.mov', '.png']:
+            mode = 'version'
+        else : 
+            mode = 'publish'
+
         #Set the data on the ShotgunUploader object
-        self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment)
+        self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment, mode)
 
         #Show progress
         self.showProgress("Submitting file...")
 
         #Do the version upload
-        self._shotgunUploader.uploadVersion()
+        self._shotgunUploader.uploadFile()
 
 
     '''
