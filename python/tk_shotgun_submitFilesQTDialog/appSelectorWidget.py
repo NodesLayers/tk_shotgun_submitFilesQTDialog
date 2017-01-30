@@ -31,9 +31,12 @@ class AppSelectorWidget(QtGui.QWidget):
 
         #Get the correct apps
         if self._parentUI._entity['type'] == "Asset":
-            apps = self._parentUI._assetApps
+            apps = [x for x in self._parentUI._assetApps]
         else :
-            apps = self._parentUI._shotApps
+            apps = [x for x in self._parentUI._shotApps]
+
+        #Add an 'All Apps' button
+        apps.append("All Apps")
 
         #Add buttons - maximum of 3 per row
         maxButtonsPerRow = 3

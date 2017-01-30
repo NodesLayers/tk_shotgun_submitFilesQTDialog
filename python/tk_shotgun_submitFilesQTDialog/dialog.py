@@ -210,11 +210,12 @@ class Dialog(QtGui.QDialog):
         self._auto_chosenApp = self.sender().text()
 
         #Show the progress widget
-        # self.showProgress("Looking for new %s files..." % self._auto_chosenApp)
+        self.showProgress("Starting the search for files...")
 
-        #Start the search for files that aren't already associated with versions
+        #Start the search for files that aren't already associated with versions, on the BG Thread
         self._shotgunFileFinder = ShotgunFileFinder(self, self._auto_chosenApp)
-        self.display_exception("App", [self._shotgunFileFinder._appToSearch, self._shotgunFileFinder._templateName, self._shotgunFileFinder._appFolder, str(self._shotgunFileFinder._isValid), str(self._shotgunFileFinder._allFiles)])
+        # self.display_exception("App", [str(self._shotgunFileFinder._appsToSearch), str(self._shotgunFileFinder._appFolders), str(self._shotgunFileFinder._outputFolders), str(self._shotgunFileFinder._allFiles)])
+        # self.display_exception("App", [str(self._shotgunFileFinder._appsToSearch)])
 
     '''
 
