@@ -30,6 +30,9 @@ class ShotgunFileFinderBGThread(QtCore.QThread):
         #Get all publishes/versions on the server
         self._fileFinder.findAllVersionsAndPublishesOnSG()
 
+        #Get a list of all files that do not exist as versions/publishes on SG
+        self._fileFinder.findAllNonShotgunFiles()
+
         '''
         At this point we have a list of all files that exist for the choosen app on the current entity
         '''
@@ -56,6 +59,8 @@ class ShotgunFileFinder(object):
         self._appFolders = []
         self._existingVersions = []
         self._existingPublishes = []
+        self._existingFilePaths = []
+        self._filesThatArentInShotgun = []
 
         #Do the upload
         self._backgroundThread = ShotgunFileFinderBGThread(self)
@@ -63,7 +68,9 @@ class ShotgunFileFinder(object):
         self._backgroundThread.start()
 
     def fileFinderBGThreadFinished(self):
-        self._dialog.showProgress("BG Thread finished. Found %s existing Versions, and %s existing Publishes" % ( len( self._existingVersions ), len( self._existingPublishes ) ) )
+        joinedNonSGFiles = '\n'.join(self._filesThatArentInShotgun)
+        joinedSGFiles = '\n'.join(self._existingFilePaths)
+        self._dialog.showProgress("BG Thread finished. Found %s existing Versions, and %s existing Publishes.\n\nThere are %s filepaths associated with those SG assets.\n\nThere are %s files not uploaded.\n\nThose files are :\n%s\n\nAlready on SG :\n%s" % ( len( self._existingVersions ), len( self._existingPublishes ), len( self._existingFilePaths ), len( self._filesThatArentInShotgun ),  joinedNonSGFiles, joinedSGFiles ) )
 
     def setupTemplate(self):
 
@@ -114,5 +121,25 @@ class ShotgunFileFinder(object):
 
         self._existingVersions = self._dialog._shotgun.find('Version', filters, versionFields)
         self._existingPublishes = self._dialog._shotgun.find('PublishedFile', filters, publishFields)
+
+
+    def findAllNonShotgunFiles(self):
+
+        #We have a list of all versions and publishes. Extract the file paths
+        self._existingFilePaths = []
+        for existingVersion in self._existingVersions:
+            if existingVersion['sg_path_to_movie'] != None:
+                self._existingFilePaths.append(str(existingVersion['sg_path_to_movie']))
+        for existingPublish in self._existingPublishes:
+            if existingPublish['path'] != None:
+                self._existingFilePaths.append(existingPublish['path']['local_path'])
+
+        #For each file we want to upload, check if it's in the existing paths.
+        #If it is, skip, if not, store
+        self._filesThatArentInShotgun = []
+        for localFilePath in self._allFiles:
+            if localFilePath not in self._existingFilePaths:
+                self._filesThatArentInShotgun.append(localFilePath)
+
 
 
