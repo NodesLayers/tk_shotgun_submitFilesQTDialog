@@ -2,6 +2,7 @@ import sgtk
 import os
 import sys
 import time
+import re
 
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -74,12 +75,36 @@ class ShotgunUploader(object):
 
         self._mode = mode
 
+    def returnVersionNumberIntFromStringOrNone(self, fileString):
+        regex = "_v\d{4}"
+        result = re.search(regex, fileString)
+        if not result :
+            return None
+        versionStringMatch = result.group(0)
+        intVersion = int( versionStringMatch[2:] )
+        return intVersion
+
+    def returnPrefixToVersionAsStringOrNone(self, fileString):
+        regex = "_v\d{4}"
+        result = re.split(regex, fileString)
+        return result[0]
+
 
     def uploadFile(self):
 
         #Calculate the version name
-        versionName = 'TestVersionName'
-        versionNumber = 1
+        versionName = self.returnPrefixToVersionAsStringOrNone(os.path.basename(self._filePath))
+        if not versionName :
+            #There was no 4 digit version string in the file name. Just get the name without extension
+            fileName, fileExt = os.path.splitExt(os.path.basename(self._filePath))
+            versionName = fileName
+
+        #Calculate the version number
+        versionNumber = self.returnVersionNumberIntFromStringOrNone(self._filePath)
+        if not versionName : 
+            #There was no version number in the file name. Just set to 1
+            versionNumber = 1
+
         publishType = "Rendered Image"
 
         #Set values based upon mode
