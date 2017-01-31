@@ -51,4 +51,4 @@ class ProgressSpinnerWidget(QtGui.QWidget):
         self._label.setText(self._message)
 
     def cancelButtonHit(self):
-        self._parentUI.showWidgetWithID(1)
+        self._parentUI.progressCancelButtonHit()

@@ -73,6 +73,8 @@ class ShotgunUploader(object):
         self._uploadedFile = None
         self._uploadedPublish = None
 
+        self._wasCancelled = False
+
         self._mode = mode
 
     def returnVersionNumberIntFromStringOrNone(self, fileString):
@@ -143,7 +145,16 @@ class ShotgunUploader(object):
         self._backgroundThread.finished.connect(self.uploadFileCompleted)
         self._backgroundThread.start()
 
+    def cancelUpload(self):
+
+        #Clean up thread
+        self._backgroundThread.stop()
+
     def uploadFileCompleted(self):
+
+        #If cancelled, do nothing - logic is handled in main Dialog file
+        if self._wasCancelled :
+            return
 
         #Clean up thread
         self._backgroundThread.stop()

@@ -356,6 +356,16 @@ class Dialog(QtGui.QDialog):
         self._shotgunUploader.uploadFile()
 
 
+    def progressCancelButtonHit(self):
+
+        #Cancel the upload
+        self._shotgunUploader._wasCancelled = True
+        self._shotgunUploader.cancelUpload()
+
+        #Show the info screen
+        self.showWidgetWithID(5)
+
+
     '''
 
     File Finder
