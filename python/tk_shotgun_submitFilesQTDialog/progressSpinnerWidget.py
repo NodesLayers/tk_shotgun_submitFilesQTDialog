@@ -32,6 +32,7 @@ class ProgressSpinnerWidget(QtGui.QWidget):
 
         #Make text label
         self._label = QtGui.QLabel("Progress Spinner")
+        self._label.setAlignment(QtCore.Qt.AlignCenter)
         newLayout.addWidget(self._label)
 
         #Add cancel button

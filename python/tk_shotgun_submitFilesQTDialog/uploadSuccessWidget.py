@@ -23,7 +23,8 @@ class UploadSuccessWidget(QtGui.QWidget):
         newLayout = QtGui.QVBoxLayout()
 
         #Make text label
-        label = QtGui.QLabel("Upload Success")
+        label = QtGui.QLabel('<p style="font-size:32px">Upload Success</p>')
+        label.setAlignment(QtCore.Qt.AlignCenter)
         newLayout.addWidget(label)
 
         #Add done button

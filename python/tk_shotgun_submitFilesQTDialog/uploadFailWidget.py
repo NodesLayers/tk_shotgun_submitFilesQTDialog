@@ -23,7 +23,8 @@ class UploadFailWidget(QtGui.QWidget):
         newLayout = QtGui.QVBoxLayout()
 
         #Make text label
-        label = QtGui.QLabel("Upload Failed")
+        label = QtGui.QLabel('<p style="font-size:32px">Upload Failed</p>')
+        label.setAlignment(QtCore.Qt.AlignCenter)
         newLayout.addWidget(label)
 
         #Add done button
