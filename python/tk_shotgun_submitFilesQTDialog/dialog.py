@@ -40,7 +40,8 @@ def show_dialog(app_instance, entity_type=None, entity_ids=None):
     """
     # we pass the dialog class to this method and leave the actual construction
     # to be carried out by toolkit.
-    app_instance.engine.show_dialog("Submit Files to Shotgun", app_instance, Dialog)
+    appTitle = app_instance.get_setting("app_title") or "Submit Files to Shotgun"
+    app_instance.engine.show_dialog(appTitle, app_instance, Dialog)
 
 
 class CopyFileToOutputFolderThread(QtCore.QThread):
@@ -78,6 +79,8 @@ class Dialog(QtGui.QDialog):
         self._tank = self._app.tank
         self._shotgun = self._app.shotgun
 
+        self._conceptMode = self._app.get_setting("concept_mode")
+
         #Store reference to allowed apps
         self._assetApps = self._app.get_setting("asset_apps")
         self._shotApps = self._app.get_setting("shot_apps")
@@ -87,6 +90,15 @@ class Dialog(QtGui.QDialog):
 
         #Store reference to entity
         self._entity = self._context.entity
+
+        #Check paths exist
+        self._entityPaths = self.checkPathsExist()
+        if not self._entityPaths:
+            self.display_exception("No paths exist for this asset", [])
+            self.close()
+            return
+
+        # self.display_exception("Context Entity Paths", [str(self._context), str(self._entity), str(self._entityPaths)])
 
         #Store reference to chosen app on auto path
         self._auto_chosenApp = None
@@ -106,12 +118,6 @@ class Dialog(QtGui.QDialog):
         #Setup shotgun uploader
         self._shotgunUploader = ShotgunUploader()
 
-        #Check paths exist
-        self._entityPaths = self.checkPathsExist()
-        if not self._entityPaths:
-            self.display_exception("No paths exist for this asset", [])
-            self.close()
-            return
 
         try : 
 
@@ -121,35 +127,35 @@ class Dialog(QtGui.QDialog):
 
             #Make the widgets - one widget per screen
             self._startScreenWidget = StartScreenWidget(self)
-            self._auto_appSelectorWidget = AppSelectorWidget(self)
-            self._progressSpinnerWidget = ProgressSpinnerWidget(self, "Thinking...")
-            self._fileResultsWidget = FileResultsWidget(self)
-            self._fileInfoWidget = FileInfoWidget(self)
-            self._fileNotInOutputFolderWidget = FileNotInOutputFolderWidget(self)
-            self._uploadSuccessWidget = UploadSuccessWidget(self)
-            self._uploadFailWidget = UploadFailWidget(self)
+            # self._auto_appSelectorWidget = AppSelectorWidget(self)
+            # self._progressSpinnerWidget = ProgressSpinnerWidget(self, "Thinking...")
+            # self._fileResultsWidget = FileResultsWidget(self)
+            # self._fileInfoWidget = FileInfoWidget(self)
+            # self._fileNotInOutputFolderWidget = FileNotInOutputFolderWidget(self)
+            # self._uploadSuccessWidget = UploadSuccessWidget(self)
+            # self._uploadFailWidget = UploadFailWidget(self)
 
             #Add all widgets
             self._layout.addWidget(self._startScreenWidget)
-            self._layout.addWidget(self._auto_appSelectorWidget)
-            self._layout.addWidget(self._progressSpinnerWidget)
-            self._layout.addWidget(self._fileResultsWidget)
-            self._layout.addWidget(self._fileInfoWidget)
-            self._layout.addWidget(self._fileNotInOutputFolderWidget)
-            self._layout.addWidget(self._uploadSuccessWidget)
-            self._layout.addWidget(self._uploadFailWidget)
+            # self._layout.addWidget(self._auto_appSelectorWidget)
+            # self._layout.addWidget(self._progressSpinnerWidget)
+            # self._layout.addWidget(self._fileResultsWidget)
+            # self._layout.addWidget(self._fileInfoWidget)
+            # self._layout.addWidget(self._fileNotInOutputFolderWidget)
+            # self._layout.addWidget(self._uploadSuccessWidget)
+            # self._layout.addWidget(self._uploadFailWidget)
 
             # #Make dicts of widgets
             self._widgetDict = {
 
                 '1' : self._startScreenWidget,
-                '2' : self._auto_appSelectorWidget,
-                '3' : self._progressSpinnerWidget,
-                '4' : self._fileResultsWidget,
-                '5' : self._fileInfoWidget,
-                '6' : self._fileNotInOutputFolderWidget,
-                '7' : self._uploadSuccessWidget,
-                '8' : self._uploadFailWidget,
+                # '2' : self._auto_appSelectorWidget,
+                # '3' : self._progressSpinnerWidget,
+                # '4' : self._fileResultsWidget,
+                # '5' : self._fileInfoWidget,
+                # '6' : self._fileNotInOutputFolderWidget,
+                # '7' : self._uploadSuccessWidget,
+                # '8' : self._uploadFailWidget,
 
             }
 
@@ -194,6 +200,8 @@ class Dialog(QtGui.QDialog):
                 self._widgetDict[widgetIndex].setVisible(True)
                 break
 
+    def conceptButtonClicked(self):
+        self.display_exception("Concept button hit", [])
 
     def autoModeSelected(self):
         #Progress to the auto page
@@ -358,7 +366,7 @@ class Dialog(QtGui.QDialog):
 
     def progressCancelButtonHit(self):
 
-        #Cancel the upload
+        #Cancel the upload - TODO : DO THIS BETTER
         self._shotgunUploader._wasCancelled = True
         self._shotgunUploader.cancelUpload()
 

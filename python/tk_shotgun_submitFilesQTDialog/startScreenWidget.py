@@ -22,12 +22,20 @@ class StartScreenWidget(QtGui.QWidget):
         #Set the main layout for the page
         newLayout = QtGui.QVBoxLayout()
 
-        #Make text label
-        newLayout.addStretch(1)
-        label = QtGui.QLabel('<p style="font-size:16px">You are Submitting a file for the %s</p>' % parent._entity['type'])
+        #Get label strings
+        if self._parentUI._entity != None :
+            labelString = '<p style="font-size:16px">You are Submitting a file for the %s</p>' % self._parentUI._entity['type']
+            entityLabelString = '<p style="font-size:32px">%s</p>' % self._parentUI._entity['name']
+        else : 
+            labelString = ''
+            entityLabelString = '<p style="font-size:32px">Upload New Concept</p>'
+
+        #Create labels and add
+        label = QtGui.QLabel(labelString)
         label.setAlignment(QtCore.Qt.AlignCenter)
-        entityLabel = QtGui.QLabel('<p style="font-size:32px">%s</p>' % (parent._entity['name']))
+        entityLabel = QtGui.QLabel(entityLabelString)
         entityLabel.setAlignment(QtCore.Qt.AlignCenter)
+        newLayout.addStretch(1)
         newLayout.addWidget(label)
         newLayout.addWidget(entityLabel)
         newLayout.addStretch(1)
@@ -36,16 +44,17 @@ class StartScreenWidget(QtGui.QWidget):
         buttonLayout = QtGui.QHBoxLayout()
 
         #Make buttons
-        self._browseButton = QtGui.QPushButton("Browse for File")
-        self._autoButton = QtGui.QPushButton("Automatic")
-
-        #Connect the buttons
-        self._browseButton.clicked.connect(self._parentUI.browseButtonClicked)
-        self._autoButton.clicked.connect(self._parentUI.autoModeSelected)
-
-        #Add buttons to button layout
-        buttonLayout.addWidget(self._browseButton)
-        buttonLayout.addWidget(self._autoButton)
+        if not self._parentUI._conceptMode : 
+            self._browseButton = QtGui.QPushButton("Browse for File")
+            self._autoButton = QtGui.QPushButton("Automatic")
+            self._browseButton.clicked.connect(self._parentUI.browseButtonClicked)
+            self._autoButton.clicked.connect(self._parentUI.autoModeSelected)
+            buttonLayout.addWidget(self._browseButton)
+            buttonLayout.addWidget(self._autoButton)
+        else : 
+            self._conceptButton = QtGui.QPushButton("Upload New Concept")
+            self._conceptButton.clicked.connect(self._parentUI.conceptButtonClicked)
+            buttonLayout.addWidget(self._conceptButton)
 
         #Add button layout to content layout
         newLayout.addLayout(buttonLayout)

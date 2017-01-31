@@ -37,7 +37,7 @@ class SubmitFilesToShotgunApp(Application):
         menu_callback = lambda : app_payload.dialog.show_dialog(self)
 
         # now register the command with the engine
-        display_name = self.get_setting( "display_name") or "Submit Files to Shotgun"
+        display_name = self.get_setting( "app_title") or "Submit Files to Shotgun"
         short_name = display_name.lower().replace(" ", "_")
         settings = {
             "icon": self.icon_256,
