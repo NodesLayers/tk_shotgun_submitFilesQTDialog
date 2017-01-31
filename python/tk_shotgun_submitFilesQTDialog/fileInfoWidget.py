@@ -67,8 +67,9 @@ class FileInfoWidget(QtGui.QWidget):
         #Add layouts
         newLayout.addLayout(assetInfoLayout)
         newLayout.addStretch(1)
-        newLayout.addLayout(typeLayout)
-        newLayout.addStretch(1)
+        if not self._parentUI._conceptMode:
+            newLayout.addLayout(typeLayout)
+            newLayout.addStretch(1)
         newLayout.addLayout(commentLayout)
         newLayout.addStretch(1)
 
@@ -80,7 +81,8 @@ class FileInfoWidget(QtGui.QWidget):
 
         #Add submit button
         self._submitButton = QtGui.QPushButton("Submit")
-        self._submitButton.setEnabled(False)
+        if not self._parentUI._conceptMode:
+            self._submitButton.setEnabled(False)
         self._submitButton.clicked.connect(self.submitButtonHit)
         buttonLayout.addWidget(self._submitButton)
 

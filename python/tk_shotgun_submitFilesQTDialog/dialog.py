@@ -127,35 +127,35 @@ class Dialog(QtGui.QDialog):
 
             #Make the widgets - one widget per screen
             self._startScreenWidget = StartScreenWidget(self)
-            # self._auto_appSelectorWidget = AppSelectorWidget(self)
-            # self._progressSpinnerWidget = ProgressSpinnerWidget(self, "Thinking...")
-            # self._fileResultsWidget = FileResultsWidget(self)
-            # self._fileInfoWidget = FileInfoWidget(self)
-            # self._fileNotInOutputFolderWidget = FileNotInOutputFolderWidget(self)
-            # self._uploadSuccessWidget = UploadSuccessWidget(self)
-            # self._uploadFailWidget = UploadFailWidget(self)
+            self._auto_appSelectorWidget = AppSelectorWidget(self)
+            self._progressSpinnerWidget = ProgressSpinnerWidget(self, "Thinking...")
+            self._fileResultsWidget = FileResultsWidget(self)
+            self._fileInfoWidget = FileInfoWidget(self)
+            self._fileNotInOutputFolderWidget = FileNotInOutputFolderWidget(self)
+            self._uploadSuccessWidget = UploadSuccessWidget(self)
+            self._uploadFailWidget = UploadFailWidget(self)
 
             #Add all widgets
             self._layout.addWidget(self._startScreenWidget)
-            # self._layout.addWidget(self._auto_appSelectorWidget)
-            # self._layout.addWidget(self._progressSpinnerWidget)
-            # self._layout.addWidget(self._fileResultsWidget)
-            # self._layout.addWidget(self._fileInfoWidget)
-            # self._layout.addWidget(self._fileNotInOutputFolderWidget)
-            # self._layout.addWidget(self._uploadSuccessWidget)
-            # self._layout.addWidget(self._uploadFailWidget)
+            self._layout.addWidget(self._auto_appSelectorWidget)
+            self._layout.addWidget(self._progressSpinnerWidget)
+            self._layout.addWidget(self._fileResultsWidget)
+            self._layout.addWidget(self._fileInfoWidget)
+            self._layout.addWidget(self._fileNotInOutputFolderWidget)
+            self._layout.addWidget(self._uploadSuccessWidget)
+            self._layout.addWidget(self._uploadFailWidget)
 
             # #Make dicts of widgets
             self._widgetDict = {
 
                 '1' : self._startScreenWidget,
-                # '2' : self._auto_appSelectorWidget,
-                # '3' : self._progressSpinnerWidget,
-                # '4' : self._fileResultsWidget,
-                # '5' : self._fileInfoWidget,
-                # '6' : self._fileNotInOutputFolderWidget,
-                # '7' : self._uploadSuccessWidget,
-                # '8' : self._uploadFailWidget,
+                '2' : self._auto_appSelectorWidget,
+                '3' : self._progressSpinnerWidget,
+                '4' : self._fileResultsWidget,
+                '5' : self._fileInfoWidget,
+                '6' : self._fileNotInOutputFolderWidget,
+                '7' : self._uploadSuccessWidget,
+                '8' : self._uploadFailWidget,
 
             }
 
@@ -201,7 +201,7 @@ class Dialog(QtGui.QDialog):
                 break
 
     def conceptButtonClicked(self):
-        self.display_exception("Concept button hit", [])
+        self.startFileBrowser(conceptMode=True)
 
     def autoModeSelected(self):
         #Progress to the auto page
@@ -231,13 +231,21 @@ class Dialog(QtGui.QDialog):
 
     '''
 
-    def startFileBrowser(self):
+    def startFileBrowser(self, conceptMode=False):
+
+        #Get the concept folder
+        conceptTemplate = self._tank.templates['submitFilesToShotgun_conceptOutputDirectory']
+        conceptFields = self._context.as_template_fields(conceptTemplate)
+        self._conceptFolderPath = conceptTemplate.apply_fields(conceptFields)
 
         #Show a file browser
-        startDirectory = self._entityPaths[0]
-        title = "Select file to Submit"
-        # fileFilter = "Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
-        # fileFilter = "Images (*.png *.jpg *.tiff *.tif *.bmp *.exr *.dpx);;Project Files (*.psd *.ai *.aep *.c4d *.ma *.mb *.nk *.psb);;3D Exports (*.abc *.fbx *.obj)"
+        if conceptMode : 
+            startDirectory = self._conceptFolderPath
+            title = "Select Concept to Submit"
+        else : 
+            startDirectory = self._entityPaths[0]
+            title = "Select file to Submit"
+
         fname, filterMatch = QtGui.QFileDialog.getOpenFileName(self, title, startDirectory)
 
         #Ensure that a file was chosen
@@ -253,20 +261,35 @@ class Dialog(QtGui.QDialog):
         self._files = [fname]
         self._chosenFile = fname
 
-        #Check if the file is within the asset directory
+        #Check if the file is within the required directory (projectdir for concepts, entity dir for entities)
         if self._entityPaths[0] not in self._chosenFile:
             self.display_exception("File not in Asset Directory", ["The file you have chosen doesn't exist within the current Asset's directory structure, and cannot be submitted."])
             return
 
         #Check whether the file is in an output folder
-        if os.path.basename(os.path.dirname(self._chosenFile)) == "__OUTPUT" :
+        isInCorrectFolder = False
+        if self._conceptMode:
+            #Just check if __OUTPUT is in the filename and that the file is in the concept folder somewhere
+            if ('__OUTPUT' in self._chosenFile) and (self._conceptFolderPath in self._chosenFile):
+                isInCorrectFolder = True
+        else : 
+            #Check if the last folder in the path is __OUTPUT
+            if os.path.basename(os.path.dirname(self._chosenFile)) == "__OUTPUT" :
+                isInCorrectFolder = True
+
+        #React to file location
+        if isInCorrectFolder :
             #The asset IS in an output directory. Go straight to the info page
             self._fileInfoWidget.updateLabel()
             self.showWidgetWithID(5)
         else : 
             #The asset is not in an output directory. 
-            #Get the closest output directory
-            closestOutputFolderPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT")
+            #Get the path to the closest output folder
+            if self._conceptMode :
+                #Get the path from the appBundle
+                closestOutputFolderPath = self._conceptFolderPath
+            else : 
+                closestOutputFolderPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT")
 
             #Check it exists
             if not os.path.exists(closestOutputFolderPath):
@@ -287,7 +310,10 @@ class Dialog(QtGui.QDialog):
     def doCopy(self):
         #Set the construct paths
         self._sourceCopyPath = self._chosenFile
-        self._destCopyPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT", os.path.split(self._chosenFile)[1])
+        if self._conceptMode:
+            self._destCopyPath = os.path.join(self._conceptFolderPath, os.path.split(self._chosenFile)[1])
+        else :
+            self._destCopyPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT", os.path.split(self._chosenFile)[1])
 
         #Check that the dest path doesn't already exist
         if os.path.exists(self._destCopyPath):
@@ -342,17 +368,23 @@ class Dialog(QtGui.QDialog):
 
         #Get the data
         fileToSubmit = self._chosenFile
-        versionType = self._fileInfoWidget._typeComboBox.currentText()
+        if self._conceptMode :
+            versionType = "concept"
+        else :
+            versionType = self._fileInfoWidget._typeComboBox.currentText()
         comment = str(self._fileInfoWidget._commentTextEdit.text())
 
         #Set the mode of the uploader
         #If png or movie, mode is version
         #If ANYTHING ELSE, mode is publish
         fileName, fileExt = os.path.splitext(fileToSubmit)
-        if fileExt in ['.mov', '.png']:
-            mode = 'version'
-        else : 
-            mode = 'publish'
+        if self._conceptMode :
+            mode = 'concept'
+        else :
+            if fileExt in ['.mov', '.png']:
+                mode = 'version'
+            else : 
+                mode = 'publish'
 
         #Set the data on the ShotgunUploader object
         self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment, mode)

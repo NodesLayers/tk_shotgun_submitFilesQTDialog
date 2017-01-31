@@ -19,7 +19,20 @@ class ShotgunUploaderBGThread(QtCore.QThread):
 
     def run(self):
 
-        if self._uploader._mode == 'version':
+        if self._uploader._mode == 'concept':
+            #Make the concept - it's CustomEntity50
+            try: 
+                self._uploader._uploadedConcept = self._uploader._dialog._shotgun.create('CustomEntity50', self._uploader._conceptData)
+            except Exception as e :
+                self._uploader._uploadedConcept = None
+                self._uploader._errorData = e
+
+            #If concept creation didn't succeed, return
+            if not self._uploader._uploadedConcept :
+                return
+
+
+        elif self._uploader._mode == 'version':
             #Make the version
             try: 
                 self._uploader._uploadedVersion = self._uploader._dialog._shotgun.create('Version', self._uploader._versionData)
@@ -68,12 +81,16 @@ class ShotgunUploader(object):
 
         self._versionData = None
         self._publishData = None
+        self._conceptData = None
 
         self._uploadedVersion = None
         self._uploadedFile = None
         self._uploadedPublish = None
+        self._uploadedConcept = None
 
         self._wasCancelled = False
+
+        self._errorData = None
 
         self._mode = mode
 
@@ -110,7 +127,15 @@ class ShotgunUploader(object):
         publishType = self._dialog.returnPublishTypeForFile(self._filePath)
 
         #Set values based upon mode
-        if self._mode == 'version':
+        if self._mode == 'concept':
+            #Set version data
+            self._conceptData = {}
+            self._conceptData['project'] = {'type': 'Project','id': self._context.project['id']}
+            self._conceptData['code'] = versionName
+            self._conceptData['sg_file'] = {'local_path': '%s' % self._filePath, 'name': '%s' % versionName}
+            self._conceptData['description'] = self._comment
+
+        elif self._mode == 'version':
             #Set version data
             self._versionData = {}
             self._versionData['project'] = {'type': 'Project','id': self._context.project['id']}
@@ -159,8 +184,10 @@ class ShotgunUploader(object):
         #Clean up thread
         self._backgroundThread.stop()
 
+        # self._dialog.display_exception("Upload Error", [str(self._errorData)])
+
         #Get confirmation
-        if self._uploadedVersion != None or self._uploadedPublish != None :
+        if self._uploadedVersion != None or self._uploadedPublish != None or self._uploadedConcept != None :
             self._dialog.showWidgetWithID(7)
         else :
             self._dialog.showWidgetWithID(8)

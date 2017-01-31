@@ -23,7 +23,7 @@ class StartScreenWidget(QtGui.QWidget):
         newLayout = QtGui.QVBoxLayout()
 
         #Get label strings
-        if self._parentUI._entity != None :
+        if not self._parentUI._conceptMode :
             labelString = '<p style="font-size:16px">You are Submitting a file for the %s</p>' % self._parentUI._entity['type']
             entityLabelString = '<p style="font-size:32px">%s</p>' % self._parentUI._entity['name']
         else : 

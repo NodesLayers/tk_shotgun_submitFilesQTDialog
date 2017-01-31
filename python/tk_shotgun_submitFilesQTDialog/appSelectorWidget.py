@@ -32,7 +32,9 @@ class AppSelectorWidget(QtGui.QWidget):
         gridLayout = QtGui.QGridLayout()
 
         #Get the correct apps
-        if self._parentUI._entity['type'] == "Asset":
+        if self._parentUI._conceptMode :
+            apps = []
+        elif self._parentUI._entity['type'] == "Asset":
             apps = [x for x in self._parentUI._assetApps]
         else :
             apps = [x for x in self._parentUI._shotApps]
