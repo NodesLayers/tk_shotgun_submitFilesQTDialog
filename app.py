@@ -29,12 +29,6 @@ class SubmitFilesToShotgunApp(Application):
         # toolkit's code reload mechanism will work properly.
         app_payload = self.import_module("tk_shotgun_submitFilesQTDialog")
 
-        #Ensure that PySide is in the <config>/install/core/scripts folder
-        pyside_path = os.path.join(sys.path[0], 'PySide')
-        if not os.path.exists(pyside_path):
-            self.log_error("The PySide directory is not installed in this Apps Config/install/core/scripts folder. Cannot run application.")
-            return
-
         # now register a *command*, which is normally a menu entry of some kind on a Shotgun
         # menu (but it depends on the engine). The engine will manage this command and 
         # whenever the user requests the command, it will call out to the callback.
