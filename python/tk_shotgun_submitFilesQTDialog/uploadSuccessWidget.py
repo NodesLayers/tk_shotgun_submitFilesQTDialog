@@ -3,9 +3,7 @@ import os
 import sys
 import time
 
-# by importing QT from sgtk rather than directly, we ensure that
-# the code will be compatible with both PySide and PyQt.
-from sgtk.platform.qt import QtCore, QtGui
+from PySide import QtCore, QtGui
 
 
 class UploadSuccessWidget(QtGui.QWidget):

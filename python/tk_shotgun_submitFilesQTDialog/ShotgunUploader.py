@@ -4,7 +4,7 @@ import sys
 import time
 import re
 
-from sgtk.platform.qt import QtCore, QtGui
+from PySide import QtCore, QtGui
 
 
 class ShotgunUploaderBGThread(QtCore.QThread):

@@ -26,9 +26,8 @@ from uploadFailWidget import UploadFailWidget
 from ShotgunUploader import ShotgunUploader
 from ShotgunFileFinder import ShotgunFileFinder
 
-# by importing QT from sgtk rather than directly, we ensure that
-# the code will be compatible with both PySide and PyQt.
-from sgtk.platform.qt import QtCore, QtGui
+
+from PySide import QtCore, QtGui
 
 
 def show_dialog(app_instance, entity_type=None, entity_ids=None):
@@ -66,7 +65,7 @@ class Dialog(QtGui.QDialog):
 
         #Super Init
         QtGui.QDialog.__init__(self)
-        
+
         #Set name
         self.setObjectName("Dialog")
 
@@ -165,7 +164,6 @@ class Dialog(QtGui.QDialog):
 
         except Exception as e : 
             self.display_exception("ERROR", [str(e)])
-
 
 
     '''

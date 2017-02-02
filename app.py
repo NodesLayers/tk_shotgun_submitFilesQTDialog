@@ -10,6 +10,7 @@
 
 
 from sgtk.platform import Application
+import os, sys
 
 class SubmitFilesToShotgunApp(Application):
     """
@@ -27,6 +28,19 @@ class SubmitFilesToShotgunApp(Application):
         # and business logic of the app is kept. By using the import_module command,
         # toolkit's code reload mechanism will work properly.
         app_payload = self.import_module("tk_shotgun_submitFilesQTDialog")
+
+        #Hook up custom pyside module
+        pyside_path = os.path.join(self.disk_location, "resources", "pyside112_py26_qt471_mac")
+        sys.path.append(pyside_path)
+
+        try:
+            from PySide import QtGui
+        except Exception, e:
+            self.log_error("PySide could not be imported! Apps using pyside will not "
+                           "operate correctly! Error reported: %s" % e)
+            return
+
+        # self.log_warning(self.disk_location)
 
         # now register a *command*, which is normally a menu entry of some kind on a Shotgun
         # menu (but it depends on the engine). The engine will manage this command and 
