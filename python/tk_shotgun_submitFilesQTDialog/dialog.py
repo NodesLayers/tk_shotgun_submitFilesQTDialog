@@ -27,6 +27,7 @@ from ShotgunUploader import ShotgunUploader
 from ShotgunFileFinder import ShotgunFileFinder
 
 
+#PySide is imported from <config>/install/core/scripts/PySide directory - if it's not there, this won't work.
 from PySide import QtCore, QtGui
 
 
@@ -96,8 +97,6 @@ class Dialog(QtGui.QDialog):
             self.display_exception("No paths exist for this asset", [])
             self.close()
             return
-
-        # self.display_exception("Context Entity Paths", [str(self._context), str(self._entity), str(self._entityPaths)])
 
         #Store reference to chosen app on auto path
         self._auto_chosenApp = None
