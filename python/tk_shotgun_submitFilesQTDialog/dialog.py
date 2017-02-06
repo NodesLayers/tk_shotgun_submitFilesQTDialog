@@ -80,6 +80,9 @@ class Dialog(QtGui.QDialog):
         self._shotgun = self._app.shotgun
 
         self._conceptMode = self._app.get_setting("concept_mode")
+        if self._conceptMode:
+            self.setWindowTitle(self._app.get_setting("app_title"))
+
 
         #Store reference to allowed apps
         self._assetApps = self._app.get_setting("asset_apps")
@@ -375,13 +378,11 @@ class Dialog(QtGui.QDialog):
         #If png or movie, mode is version
         #If ANYTHING ELSE, mode is publish
         fileName, fileExt = os.path.splitext(fileToSubmit)
-        if self._conceptMode :
-            mode = 'concept'
-        else :
-            if fileExt in ['.mov', '.png']:
-                mode = 'version'
-            else : 
-                mode = 'publish'
+
+        if fileExt in ['.mov', '.png', '.jpg']:
+            mode = 'version'
+        else : 
+            mode = 'publish'
 
         #Set the data on the ShotgunUploader object
         self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment, mode)

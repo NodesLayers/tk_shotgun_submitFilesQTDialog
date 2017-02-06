@@ -19,25 +19,13 @@ class ShotgunUploaderBGThread(QtCore.QThread):
 
     def run(self):
 
-        if self._uploader._mode == 'concept':
-            #Make the concept - it's CustomEntity50
-            try: 
-                self._uploader._uploadedConcept = self._uploader._dialog._shotgun.create('CustomEntity50', self._uploader._conceptData)
-            except Exception as e :
-                self._uploader._uploadedConcept = None
-                self._uploader._errorData = e
-
-            #If concept creation didn't succeed, return
-            if not self._uploader._uploadedConcept :
-                return
-
-
-        elif self._uploader._mode == 'version':
+        if self._uploader._mode == 'version':
             #Make the version
             try: 
                 self._uploader._uploadedVersion = self._uploader._dialog._shotgun.create('Version', self._uploader._versionData)
             except Exception as e :
                 self._uploader._uploadedVersion = None
+                self._uploader._errorData = e
 
             #If version creation didn't succeed, return
             if not self._uploader._uploadedVersion :
@@ -48,6 +36,7 @@ class ShotgunUploaderBGThread(QtCore.QThread):
                 self._uploader._uploadedFile = self._uploader._dialog._shotgun.upload('Version', self._uploader._uploadedVersion['id'], self._uploader._filePath, field_name='sg_uploaded_movie')
             except Exception as e : 
                 self._uploader._uploadedFile = None
+                self._uploader._errorData = e
 
         elif self._uploader._mode == 'publish':
 
@@ -57,7 +46,7 @@ class ShotgunUploaderBGThread(QtCore.QThread):
                 self._uploader._uploadedPublish = sgtk.util.register_publish(data['tk'], data['context'], data['path'], data['name'], published_file_type=data['published_file_type'], version_number=data['version_number'])
             except Exception as e :
                 self._uploader._uploadedPublish = None
-                self._uploader._dialog.display_exception("Pubish Error", [e])
+                self._uploader._errorData = e
 
         else : 
             return
@@ -86,7 +75,6 @@ class ShotgunUploader(object):
         self._uploadedVersion = None
         self._uploadedFile = None
         self._uploadedPublish = None
-        self._uploadedConcept = None
 
         self._wasCancelled = False
 
@@ -127,24 +115,23 @@ class ShotgunUploader(object):
         publishType = self._dialog.returnPublishTypeForFile(self._filePath)
 
         #Set values based upon mode
-        if self._mode == 'concept':
-            #Set version data
-            self._conceptData = {}
-            self._conceptData['project'] = {'type': 'Project','id': self._context.project['id']}
-            self._conceptData['code'] = versionName
-            self._conceptData['sg_file'] = {'local_path': '%s' % self._filePath, 'name': '%s' % versionName}
-            self._conceptData['description'] = self._comment
-
-        elif self._mode == 'version':
+        if self._mode == 'version':
             #Set version data
             self._versionData = {}
             self._versionData['project'] = {'type': 'Project','id': self._context.project['id']}
             self._versionData['code'] = versionName
-            self._versionData['entity'] = self._context.entity
             self._versionData['sg_path_to_movie'] = self._filePath
             self._versionData['description'] = self._comment
-            self._versionData['sg_task'] = self._context.task
-            self._versionData['sg_version_type'] = self._versionType
+
+            #If not in concept mode - set entity/task, and set version type from dropdown
+            if self._dialog._conceptMode != True :
+                self._versionData['entity'] = self._context.entity
+                self._versionData['sg_task'] = self._context.task
+                self._versionData['sg_version_type'] = self._versionType
+
+            #If in concept mode override version type
+            else : 
+                self._versionData['sg_version_type'] = 'concept'
 
         elif self._mode == 'publish':
 
@@ -184,10 +171,12 @@ class ShotgunUploader(object):
         #Clean up thread
         self._backgroundThread.stop()
 
-        # self._dialog.display_exception("Upload Error", [str(self._errorData)])
+        #Show errors if any
+        if self._errorData != None : 
+            self._dialog.display_exception("Upload Error", [str(self._errorData)])
 
         #Get confirmation
-        if self._uploadedVersion != None or self._uploadedPublish != None or self._uploadedConcept != None :
+        if (self._uploadedVersion != None and self._uploadedFile != None) or (self._uploadedPublish != None) :
             self._dialog.showWidgetWithID(7)
         else :
             self._dialog.showWidgetWithID(8)
