@@ -421,7 +421,7 @@ class Dialog(QtGui.QDialog):
                 software = app
                 fileType = self.returnPublishTypeForFile(fileName)
                 fullPath = fileToUpload
-                newModelData.append((fileName, software, fileType, "", fullPath))
+                newModelData.append((fileName, software, fileType, fullPath))
         self._fileResultsWidget.updateModelWithNewData(newModelData)
 
         #Show the info screen
