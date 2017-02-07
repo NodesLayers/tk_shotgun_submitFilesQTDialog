@@ -56,4 +56,4 @@ The file %s is not currently in an __OUTPUT folder.
 
 Shotgun can copy it into the correct directory now before publishing.
 
-Would you like to copy the file now?''' % os.path.basename(self._parentUI._chosenFile))
+Would you like to copy the file now?''' % os.path.basename(self._parentUI._chosenFiles[0]))

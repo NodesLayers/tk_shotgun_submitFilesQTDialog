@@ -27,7 +27,7 @@ class FileInfoWidget(QtGui.QWidget):
         assetInfoLayout = QtGui.QVBoxLayout()
 
         #Add file label
-        self._fileLabel = QtGui.QLabel("File : %s" % self._parentUI._chosenFile)
+        self._fileLabel = QtGui.QLabel("%s Files Selected" % len(self._parentUI._chosenFiles))
         self._fileLabel.setAlignment(QtCore.Qt.AlignCenter)
         assetInfoLayout.addWidget(self._fileLabel)
 
@@ -95,7 +95,10 @@ class FileInfoWidget(QtGui.QWidget):
             self._submitButton.setEnabled(True)
 
     def updateLabel(self):
-        self._fileLabel.setText('<p style="font-size:16px">%s</p>' % os.path.split(self._parentUI._chosenFile)[1])
+        if len(self._parentUI._chosenFiles) > 1 :
+            self._fileLabel.setText('<p style="font-size:16px">%s Files Selected for Upload</p>' % len(self._parentUI._chosenFiles))
+        else : 
+            self._fileLabel.setText('<p style="font-size:16px">%s</p>' % os.path.split(self._parentUI._chosenFiles[0])[1])
 
     def submitButtonHit(self):
         self._parentUI.doSubmit()

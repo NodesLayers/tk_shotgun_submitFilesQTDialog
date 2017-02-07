@@ -106,7 +106,7 @@ class Dialog(QtGui.QDialog):
 
         #Store reference to found/selected files
         self._files = []
-        self._chosenFile = None
+        self._chosenFiles = []
 
         #Store references for files being copied
         self._sourceCopyPath = None
@@ -259,10 +259,10 @@ class Dialog(QtGui.QDialog):
 
         #Store the chosen file
         self._files = [fname]
-        self._chosenFile = fname
+        self._chosenFiles = [fname]
 
         #Check if the file is within the required directory (projectdir for concepts, entity dir for entities)
-        if self._entityPaths[0] not in self._chosenFile:
+        if self._entityPaths[0] not in self._chosenFiles[0]:
             self.display_exception("File not in Asset Directory", ["The file you have chosen doesn't exist within the current Asset's directory structure, and cannot be submitted."])
             return
 
@@ -270,11 +270,11 @@ class Dialog(QtGui.QDialog):
         isInCorrectFolder = False
         if self._conceptMode:
             #Just check if __OUTPUT is in the filename and that the file is in the concept folder somewhere
-            if ('__OUTPUT' in self._chosenFile) and (self._conceptFolderPath in self._chosenFile):
+            if ('__OUTPUT' in self._chosenFiles[0]) and (self._conceptFolderPath in self._chosenFiles[0]):
                 isInCorrectFolder = True
         else : 
             #Check if the last folder in the path is __OUTPUT
-            if os.path.basename(os.path.dirname(self._chosenFile)) == "__OUTPUT" :
+            if os.path.basename(os.path.dirname(self._chosenFiles[0])) == "__OUTPUT" :
                 isInCorrectFolder = True
 
         #React to file location
@@ -289,7 +289,7 @@ class Dialog(QtGui.QDialog):
                 #Get the path from the appBundle
                 closestOutputFolderPath = self._conceptFolderPath
             else : 
-                closestOutputFolderPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT")
+                closestOutputFolderPath = os.path.join(os.path.split(self._chosenFiles[0])[0], "__OUTPUT")
 
             #Check it exists
             if not os.path.exists(closestOutputFolderPath):
@@ -309,11 +309,11 @@ class Dialog(QtGui.QDialog):
 
     def doCopy(self):
         #Set the construct paths
-        self._sourceCopyPath = self._chosenFile
+        self._sourceCopyPath = self._chosenFiles[0]
         if self._conceptMode:
-            self._destCopyPath = os.path.join(self._conceptFolderPath, os.path.split(self._chosenFile)[1])
+            self._destCopyPath = os.path.join(self._conceptFolderPath, os.path.split(self._chosenFiles[0])[1])
         else :
-            self._destCopyPath = os.path.join(os.path.split(self._chosenFile)[0], "__OUTPUT", os.path.split(self._chosenFile)[1])
+            self._destCopyPath = os.path.join(os.path.split(self._chosenFiles[0])[0], "__OUTPUT", os.path.split(self._chosenFiles[0])[1])
 
         #Check that the dest path doesn't already exist
         if os.path.exists(self._destCopyPath):
@@ -346,7 +346,7 @@ class Dialog(QtGui.QDialog):
             return
             
         #If they did, update the files/chosen file parameters to the new file
-        self._chosenFile = self._destCopyPath
+        self._chosenFiles = [self._destCopyPath]
         self._files = [self._destCopyPath]    
 
         #Remove the source/dest copy vals
@@ -367,7 +367,7 @@ class Dialog(QtGui.QDialog):
     def doSubmit(self):
 
         #Get the data
-        fileToSubmit = self._chosenFile
+        fileToSubmit = self._chosenFiles[0]
         if self._conceptMode :
             versionType = "concept"
         else :
@@ -439,12 +439,12 @@ class Dialog(QtGui.QDialog):
 
         #Update vars
         self._files = [fileToUpload]
-        self._chosenFile = fileToUpload
+        self._chosenFiles = [fileToUpload]
 
         #Update info screen and show
-        self._fileInfoWidget.updateLabel()
-        self._fileInfoWidget._previousScreen = 'automatic'
-        self.showWidgetWithID(5)
+        # self._fileInfoWidget.updateLabel()
+        # self._fileInfoWidget._previousScreen = 'automatic'
+        # self.showWidgetWithID(5)
 
 
 
