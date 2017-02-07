@@ -83,16 +83,13 @@ class FileResultsWidget(QtGui.QWidget):
 
     def submitButtonHit(self):
         #Get the selected rows
-        selected = list(set([x.row() for x in self._tableView.selectedIndexes()]))
-        self._parentUI.display_exception("Selected", [str(selected)])
+        selectedRowIndexes = list(set([x.row() for x in self._tableView.selectedIndexes()]))
 
-        #This was the logic from the submit this row button
-        # #Get file to upload
-        # fileToUpload = self._parentUI._currentData[rowID][3]
-        # # self._parentUI._parentUI.display_exception("Submit Details", [str(rowID), str(fileToUpload)] )
+        #Get files to upload
+        filesToUpload = [row[3] for x, row in enumerate(self._currentData) if x in selectedRowIndexes]
 
-        # #Call to the main UI
-        # self._parentUI.parent().autoFileSelectedForSubmit(fileToUpload)
+        #Call to the main UI
+        self._parentUI.autoFilesSelectedForSubmit(filesToUpload)
 
     def backButtonHit(self):
         self._parentUI.showWidgetWithID(2)

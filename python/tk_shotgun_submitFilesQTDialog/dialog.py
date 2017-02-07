@@ -366,6 +366,11 @@ class Dialog(QtGui.QDialog):
 
     def doSubmit(self):
 
+        filesToSubmit = self._chosenFiles
+        self.display_exception("About to submit these files...", filesToSubmit)
+
+        return
+
         #Get the data
         fileToSubmit = self._chosenFiles[0]
         if self._conceptMode :
@@ -435,16 +440,15 @@ class Dialog(QtGui.QDialog):
 
     '''
 
-    def autoFileSelectedForSubmit(self, fileToUpload):
+    def autoFilesSelectedForSubmit(self, filesToUpload):
 
         #Update vars
-        self._files = [fileToUpload]
-        self._chosenFiles = [fileToUpload]
+        self._chosenFiles = filesToUpload
 
         #Update info screen and show
-        # self._fileInfoWidget.updateLabel()
-        # self._fileInfoWidget._previousScreen = 'automatic'
-        # self.showWidgetWithID(5)
+        self._fileInfoWidget.updateLabel()
+        self._fileInfoWidget._previousScreen = 'automatic'
+        self.showWidgetWithID(5)
 
 
 
