@@ -145,6 +145,7 @@ class ShotgunUploader(object):
             else : 
                 self._versionData['sg_path_to_movie'] = self._filePath
             self._versionData['description'] = self._comment
+            self._versionData['sg_version_number'] = 'v%s' % str(versionNumber).zfill(4)
 
             #If not in concept mode - set entity/task, and set version type from dropdown
             if self._dialog._conceptMode != True :
