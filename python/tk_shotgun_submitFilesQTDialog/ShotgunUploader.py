@@ -58,15 +58,30 @@ class ShotgunUploaderBGThread(QtCore.QThread):
 
 class ShotgunUploader(object):
 
-    def setData(self, dialog, context, filePath, versionType, comment, mode='publish'):
+    def uploadFiles(self, dialog, context, dataDict):
 
+        #Set vars
         self._dialog = dialog
         self._context = context
+        self._dataDict = dataDict
+        self._dataDictKeys = dataDict.keys()
+
+        self._backgroundThread = None
+        self._wasCancelled = False
+        self._errorData = None
+
+        self._filesLeftToUpload = len(self._dataDict)
+        self._currentFileIndex = 0
+
+        #Trigger the upload of the first file
+        # self._dialog.display_exception("About to upload", [str(fileDict)])
+        self.uploadFile()
+
+    def setData(self, filePath, versionType, comment, mode='publish'):
+
         self._filePath = filePath
         self._versionType = versionType
         self._comment = comment
-
-        self._backgroundThread = None
 
         self._versionData = None
         self._publishData = None
@@ -74,11 +89,7 @@ class ShotgunUploader(object):
 
         self._uploadedVersion = None
         self._uploadedFile = None
-        self._uploadedPublish = None
-
-        self._wasCancelled = False
-
-        self._errorData = None
+        self._uploadedPublish = None 
 
         self._mode = mode
 
@@ -97,6 +108,15 @@ class ShotgunUploader(object):
         return result[0]
 
     def uploadFile(self):
+
+        #Show the progress window
+        self._dialog.showProgress(  "Uploading file %s/%s..." % (  (self._currentFileIndex+1), len(self._dataDict)  )  )
+
+        #Get the info for this file
+        fileDict = self._dataDict[self._dataDictKeys[self._currentFileIndex]]
+        
+        #Reset the data for this file
+        self.setData(fileDict['filePath'], fileDict['versionType'], fileDict['comment'], fileDict['mode'])
 
         #Calculate the version name
         versionName = self.returnPrefixToVersionAsStringOrNone(os.path.basename(self._filePath))
@@ -154,7 +174,7 @@ class ShotgunUploader(object):
 
         #Do the upload
         self._backgroundThread = ShotgunUploaderBGThread(self)
-        self._backgroundThread.finished.connect(self.uploadFileCompleted)
+        self._backgroundThread.finished.connect(self.singleFileUploadCompleted)
         self._backgroundThread.start()
 
     def cancelUpload(self):
@@ -162,7 +182,7 @@ class ShotgunUploader(object):
         #Clean up thread
         self._backgroundThread.stop()
 
-    def uploadFileCompleted(self):
+    def singleFileUploadCompleted(self):
 
         #If cancelled, do nothing - logic is handled in main Dialog file
         if self._wasCancelled :
@@ -175,8 +195,22 @@ class ShotgunUploader(object):
         if self._errorData != None : 
             self._dialog.display_exception("Upload Error", [str(self._errorData)])
 
-        #Get confirmation
-        if (self._uploadedVersion != None and self._uploadedFile != None) or (self._uploadedPublish != None) :
+        #Decrease the files left to upload by 1
+        self._filesLeftToUpload -= 1
+
+        #Check if this is the last file
+        if self._filesLeftToUpload == 0 :
+            #We can return 
             self._dialog.showWidgetWithID(7)
-        else :
-            self._dialog.showWidgetWithID(8)
+        else : 
+            #There are still things to upload
+            #Set the current file index
+            self._currentFileIndex += 1
+
+            #Upload the next file
+            self.uploadFile()
+
+
+
+
+

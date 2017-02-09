@@ -366,37 +366,46 @@ class Dialog(QtGui.QDialog):
 
     def doSubmit(self):
 
+        #Get all files to submit
         filesToSubmit = self._chosenFiles
-        self.display_exception("About to submit these files...", filesToSubmit)
 
-        return
+        #Make a dict that contains all the data the uploader needs
+        dataDict = {}
 
-        #Get the data
-        fileToSubmit = self._chosenFiles[0]
-        if self._conceptMode :
-            versionType = "concept"
-        else :
-            versionType = self._fileInfoWidget._typeComboBox.currentText()
-        comment = str(self._fileInfoWidget._commentTextEdit.text())
+        #Loop through all the files
+        for x, fileToSubmit in enumerate(filesToSubmit) :
 
-        #Set the mode of the uploader
-        #If png or movie, mode is version
-        #If ANYTHING ELSE, mode is publish
-        fileName, fileExt = os.path.splitext(fileToSubmit)
+            newDict = {}
 
-        if fileExt in ['.mov', '.png', '.jpg']:
-            mode = 'version'
-        else : 
-            mode = 'publish'
+            #Store the file
+            newDict['filePath'] = fileToSubmit
+
+            #Get the version type and comment
+            if self._conceptMode :
+                newDict['versionType'] = "concept"
+            else :
+                newDict['versionType'] = self._fileInfoWidget._typeComboBox.currentText()
+            newDict['comment'] = str(self._fileInfoWidget._commentTextEdit.text())
+
+
+            #Set the mode of the uploader
+            #If png or movie, mode is version
+            #If ANYTHING ELSE, mode is publish
+            fileName, fileExt = os.path.splitext(fileToSubmit)
+
+            if fileExt in ['.mov', '.png', '.jpg']:
+                newDict['mode'] = 'version'
+            else : 
+                newDict['mode'] = 'publish'
+
+            #Store the values
+            dataDict[os.path.split(fileToSubmit)[1]] = newDict
 
         #Set the data on the ShotgunUploader object
-        self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment, mode)
+        # self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment, mode)
 
-        #Show progress
-        self.showProgress("Submitting file...", cancelHidden=False)
-
-        #Do the version upload
-        self._shotgunUploader.uploadFile()
+        #Trigger the upload
+        self._shotgunUploader.uploadFiles(self, self._context, dataDict)
 
 
     def progressCancelButtonHit(self):
