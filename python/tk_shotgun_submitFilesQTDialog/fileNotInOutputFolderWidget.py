@@ -27,7 +27,7 @@ class FileNotInOutputFolderWidget(QtGui.QWidget):
 
         #Add copy button
         copyButtonLayout = QtGui.QHBoxLayout()
-        copyButton = QtGui.QPushButton("Copy File")
+        copyButton = QtGui.QPushButton("Copy Files")
         copyButtonLayout.addWidget(copyButton)
         copyButton.clicked.connect(self.copyButtonHit)
         newLayout.addStretch(1)
@@ -52,8 +52,8 @@ class FileNotInOutputFolderWidget(QtGui.QWidget):
 
     def updateLabel(self):
         self._label.setText('''
-The file %s is not currently in an __OUTPUT folder.
+The selected files are not currently in an __OUTPUT folder.
 
-Shotgun can copy it into the correct directory now before publishing.
+Shotgun can copy them into the correct __OUTPUT directory now before publishing.
 
-Would you like to copy the file now?''' % os.path.basename(self._parentUI._chosenFiles[0]))
+Would you like to copy the files now?''')

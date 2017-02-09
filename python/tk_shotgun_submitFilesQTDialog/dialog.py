@@ -46,15 +46,39 @@ def show_dialog(app_instance, entity_type=None, entity_ids=None):
 
 class CopyFileToOutputFolderThread(QtCore.QThread):
 
-    def __init__(self, source, dest):
+    def __init__(self, dialog, filesToCopy, conceptMode=False):
         #Super Init
         QtCore.QThread.__init__(self)
-        self._source = source
-        self._dest = dest
+
+        self._dialog = dialog
+        self._filesToCopy = filesToCopy
+        self._conceptMode = conceptMode
+        self._newPaths = []
 
     def run(self):
         #Do the copy
-        shutil.copy(self._source, self._dest)
+        for fileToCopy in self._filesToCopy :
+
+            #Get the copy path/dest path
+            if self._conceptMode:
+                destCopyPath = os.path.join(self._dialog._conceptFolderPath, os.path.split(fileToCopy)[1])
+            else :
+                destCopyPath = os.path.join(os.path.split(fileToCopy)[0], "__OUTPUT", os.path.split(fileToCopy)[1])
+
+            #Do the copy
+            try : 
+                shutil.copyfile(fileToCopy, destCopyPath)
+
+                #Store the dest path
+                self._newPaths.append(destCopyPath)
+
+            except Exception as e : 
+                self._dialog._errors.append(e)
+                
+
+        #We are done. Store the new paths on the main 
+        self._dialog._chosenFiles = self._newPaths
+        self._dialog._files = self._newPaths
 
     def stop(self):
         self.terminate()
@@ -83,6 +107,9 @@ class Dialog(QtGui.QDialog):
         if self._conceptMode:
             self.setWindowTitle(self._app.get_setting("app_title"))
 
+        #Get the formats that will be converted to version
+        self._versionFormats = self._app.get_setting("version_formats")
+
 
         #Store reference to allowed apps
         self._assetApps = self._app.get_setting("asset_apps")
@@ -108,13 +135,10 @@ class Dialog(QtGui.QDialog):
         self._files = []
         self._chosenFiles = []
 
-        #Store references for files being copied
-        self._sourceCopyPath = None
-        self._destCopyPath = None
-
         #Store threads
         self._copyThread = None
         self._uploadThread = None
+        self._errors = []
 
         #Setup shotgun uploader
         self._shotgunUploader = ShotgunUploader()
@@ -233,37 +257,34 @@ class Dialog(QtGui.QDialog):
 
     def startFileBrowser(self, conceptMode=False):
 
-        #Get the concept folder
-        conceptTemplate = self._tank.templates['submitFilesToShotgun_conceptOutputDirectory']
-        conceptFields = self._context.as_template_fields(conceptTemplate)
-        self._conceptFolderPath = conceptTemplate.apply_fields(conceptFields)
-
         #Show a file browser
         if conceptMode : 
+            #Get the concept folder
+            conceptTemplate = self._tank.templates['submitFilesToShotgun_conceptOutputDirectory']
+            conceptFields = self._context.as_template_fields(conceptTemplate)
+            self._conceptFolderPath = conceptTemplate.apply_fields(conceptFields)
             startDirectory = self._conceptFolderPath
             title = "Select Concept to Submit"
         else : 
             startDirectory = self._entityPaths[0]
             title = "Select file to Submit"
 
-        fname, filterMatch = QtGui.QFileDialog.getOpenFileName(self, title, startDirectory)
+        #File Browser
+        fNames, filterName = QtGui.QFileDialog.getOpenFileNames(self, title, startDirectory)
 
         #Ensure that a file was chosen
-        if len(fname) == 0:
+        if len(fNames) == 0:
             return
-        if fname == None:
-            return
-
-        if not os.path.exists(fname):
+        if fNames == None:
             return
 
-        #Store the chosen file
-        self._files = [fname]
-        self._chosenFiles = [fname]
+        #Store the chosen files
+        self._files = fNames
+        self._chosenFiles = fNames
 
         #Check if the file is within the required directory (projectdir for concepts, entity dir for entities)
         if self._entityPaths[0] not in self._chosenFiles[0]:
-            self.display_exception("File not in Asset Directory", ["The file you have chosen doesn't exist within the current Asset's directory structure, and cannot be submitted."])
+            self.display_exception("Files not in Asset Directory", ["The files you have chosen don't exist within the current Asset's directory structure, and cannot be submitted."])
             return
 
         #Check whether the file is in an output folder
@@ -279,11 +300,11 @@ class Dialog(QtGui.QDialog):
 
         #React to file location
         if isInCorrectFolder :
-            #The asset IS in an output directory. Go straight to the info page
+            #The chosen files ARE in an output directory. Go straight to the info page
             self._fileInfoWidget.updateLabel()
             self.showWidgetWithID(5)
         else : 
-            #The asset is not in an output directory. 
+            #The chosen files ARE NOT in an output directory. 
             #Get the path to the closest output folder
             if self._conceptMode :
                 #Get the path from the appBundle
@@ -293,7 +314,7 @@ class Dialog(QtGui.QDialog):
 
             #Check it exists
             if not os.path.exists(closestOutputFolderPath):
-                self.display_exception("Cannot find an associated __OUTPUT Folder for this file", ["The file you have chosen is not within a directory that contains an __OUTPUT folder. This means that it is NOT in a valid working directory and it cannot be uploaded to Shotgun.", "", "Please ensure that you always work in a valid directory."])
+                self.display_exception("Cannot find an associated __OUTPUT Folder for these files", ["The files you have chosen are not within a directory that contains an __OUTPUT folder. This means that it is NOT in a valid working directory and cannot be uploaded to Shotgun.", "", "Please ensure that you always work in a valid directory."])
                 return
 
             #File is in a valid working directory. Show copy page.
@@ -308,25 +329,13 @@ class Dialog(QtGui.QDialog):
     '''
 
     def doCopy(self):
-        #Set the construct paths
-        self._sourceCopyPath = self._chosenFiles[0]
-        if self._conceptMode:
-            self._destCopyPath = os.path.join(self._conceptFolderPath, os.path.split(self._chosenFiles[0])[1])
-        else :
-            self._destCopyPath = os.path.join(os.path.split(self._chosenFiles[0])[0], "__OUTPUT", os.path.split(self._chosenFiles[0])[1])
-
-        #Check that the dest path doesn't already exist
-        if os.path.exists(self._destCopyPath):
-            self.display_exception("File already exists", ['The file you are trying to copy already exists in the __OUTPUT directory. Choose that file instead, or change the name of the file you want to upload.'])
-            self.showWidgetWithID(1)
-            return
 
         #Show the progress widget
-        self.showProgress("Copying file into __OUTPUT folder...")
+        self.showProgress("Copying files into __OUTPUT folder...")
 
         #Start the thread
         try : 
-            self._copyThread = CopyFileToOutputFolderThread(self._sourceCopyPath, self._destCopyPath)
+            self._copyThread = CopyFileToOutputFolderThread(self, self._chosenFiles, self._conceptMode)
             self._copyThread.finished.connect(self.copyCompleted)
             self._copyThread.start()
         except Exception as e :
@@ -336,21 +345,27 @@ class Dialog(QtGui.QDialog):
 
 
     def copyCompleted(self):
+
+        #Stop the thread
         self._copyThread.stop()
         self._copyThread = None
 
         #Check if things succeeded
-        if not os.path.exists(self._destCopyPath):
-            self.display_exception("Copy Error", ["The file copy process failed for an unknown reason. Please check with your Pipeline TD."])
+        successfulPaths = [] 
+        for path in self._files :
+            if not os.path.exists(path):
+                self.display_exception("Copy Errors", ["%s : The file copy process failed for an unknown reason. Please check with your Pipeline TD." % os.path.split(path)[1]])
+                continue
+            successfulPaths.append(path)
+
+        if len(successfulPaths) == 0 :
+            self.display_exception("Copy Errors", self._errors)
             self.showWidgetWithID(1)
             return
             
         #If they did, update the files/chosen file parameters to the new file
-        self._chosenFiles = [self._destCopyPath]
-        self._files = [self._destCopyPath]    
-
-        #Remove the source/dest copy vals
-        self._sourceCopyPath = self._destCopyPath = None
+        self._chosenFiles = successfulPaths
+        self._files = successfulPaths
 
         #Now go to the info screen
         self._fileInfoWidget.updateLabel()
@@ -393,7 +408,7 @@ class Dialog(QtGui.QDialog):
             #If ANYTHING ELSE, mode is publish
             fileName, fileExt = os.path.splitext(fileToSubmit)
 
-            if fileExt in ['.mov', '.png', '.jpg']:
+            if fileExt in self._versionFormats :
                 newDict['mode'] = 'version'
             else : 
                 newDict['mode'] = 'publish'
