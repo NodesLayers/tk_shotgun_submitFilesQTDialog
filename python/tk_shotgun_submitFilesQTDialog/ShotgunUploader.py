@@ -140,7 +140,10 @@ class ShotgunUploader(object):
             self._versionData = {}
             self._versionData['project'] = {'type': 'Project','id': self._context.project['id']}
             self._versionData['code'] = versionName
-            self._versionData['sg_path_to_movie'] = self._filePath
+            if '.pdf' in self._filePath:
+                self._versionData['sg_path_to_frames'] = self._filePath
+            else : 
+                self._versionData['sg_path_to_movie'] = self._filePath
             self._versionData['description'] = self._comment
 
             #If not in concept mode - set entity/task, and set version type from dropdown
@@ -173,6 +176,7 @@ class ShotgunUploader(object):
             return
 
         #Do the upload
+        self._errorData = None
         self._backgroundThread = ShotgunUploaderBGThread(self)
         self._backgroundThread.finished.connect(self.singleFileUploadCompleted)
         self._backgroundThread.start()
@@ -208,6 +212,7 @@ class ShotgunUploader(object):
             self._currentFileIndex += 1
 
             #Upload the next file
+            self._errorData = None
             self.uploadFile()
 
 
