@@ -59,11 +59,18 @@ class CopyFileToOutputFolderThread(QtCore.QThread):
         #Do the copy
         for fileToCopy in self._filesToCopy :
 
+            #Get the date folder name
+            dateFolderName = time.strftime("%y%m%d")
+
             #Get the copy path/dest path
             if self._conceptMode:
-                destCopyPath = os.path.join(self._dialog._conceptFolderPath, os.path.split(fileToCopy)[1])
+                destCopyPath = os.path.join(self._dialog._conceptFolderPath, dateFolderName, os.path.split(fileToCopy)[1])
             else :
-                destCopyPath = os.path.join(os.path.split(fileToCopy)[0], "__OUTPUT", os.path.split(fileToCopy)[1])
+                destCopyPath = os.path.join(os.path.split(fileToCopy)[0], dateFolderName, "__OUTPUT", os.path.split(fileToCopy)[1])
+
+            #Make the folder if it doesn't exist
+            if not os.path.exists(os.path.split(destCopyPath)[0]):
+                os.mkdir(os.path.split(destCopyPath)[0])
 
             #Do the copy
             try : 
@@ -294,8 +301,8 @@ class Dialog(QtGui.QDialog):
             if ('__OUTPUT' in self._chosenFiles[0]) and (self._conceptFolderPath in self._chosenFiles[0]):
                 isInCorrectFolder = True
         else : 
-            #Check if the last folder in the path is __OUTPUT
-            if os.path.basename(os.path.dirname(self._chosenFiles[0])) == "__OUTPUT" :
+            #Check if the chosen file is in the correct entity folder, and in an OUTPUT folder
+            if self._entityPaths[0] in self._chosenFiles[0] and "__OUTPUT" in self._chosenFiles[0]:
                 isInCorrectFolder = True
 
         #React to file location

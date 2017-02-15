@@ -94,10 +94,17 @@ class ShotgunUploader(object):
         self._mode = mode
 
     def returnVersionNumberIntFromStringOrNone(self, fileString):
-        regex = "_v\d{4}"
+
+        #We're going to search for _v1, _v01, _v001 and _v0001 variants
+        regex = "_v\d+"
+
+        #Get the results
         result = re.search(regex, fileString)
+
+        #Check for results
         if not result :
             return None
+
         versionStringMatch = result.group(0)
         intVersion = int( versionStringMatch[2:] )
         return intVersion
@@ -118,12 +125,8 @@ class ShotgunUploader(object):
         #Reset the data for this file
         self.setData(fileDict['filePath'], fileDict['versionType'], fileDict['comment'], fileDict['mode'])
 
-        #Calculate the version name
-        versionName = self.returnPrefixToVersionAsStringOrNone(os.path.basename(self._filePath))
-        if versionName == None :
-            #There was no 4 digit version string in the file name. Just get the name without extension
-            fileName, fileExt = os.path.splitext(os.path.basename(self._filePath))
-            versionName = fileName
+        #Version name is always just the full file name
+        versionName = os.path.basename(self._filePath)
 
         #Calculate the version number
         versionNumber = self.returnVersionNumberIntFromStringOrNone(self._filePath)
