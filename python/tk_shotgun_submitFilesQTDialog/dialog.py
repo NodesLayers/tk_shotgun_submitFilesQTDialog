@@ -72,6 +72,10 @@ class CopyFileToOutputFolderThread(QtCore.QThread):
             if not os.path.exists(os.path.split(destCopyPath)[0]):
                 os.mkdir(os.path.split(destCopyPath)[0])
 
+            #Check we need to do the copy
+            if os.path.exists(destCopyPath):
+                continue
+
             #Do the copy
             try : 
                 shutil.copyfile(fileToCopy, destCopyPath)
@@ -391,11 +395,20 @@ class Dialog(QtGui.QDialog):
         #Get all files to submit
         filesToSubmit = self._chosenFiles
 
+        #Get all the existing version/publish file paths
+        existingVersionPaths = self.getAllExistingVersionPaths()
+
         #Make a dict that contains all the data the uploader needs
         dataDict = {}
 
         #Loop through all the files
+        existingFiles = []
         for x, fileToSubmit in enumerate(filesToSubmit) :
+
+            #If the file matches a version/publish on the server, record it and skip
+            if fileToSubmit in existingVersionPaths:
+                existingFiles.append(fileToSubmit)
+                continue
 
             newDict = {}
 
@@ -426,9 +439,17 @@ class Dialog(QtGui.QDialog):
         #Set the data on the ShotgunUploader object
         # self._shotgunUploader.setData(self, self._context, fileToSubmit, versionType, comment, mode)
 
-        #Trigger the upload
-        self._shotgunUploader.uploadFiles(self, self._context, dataDict)
+        #Warn that files have been skipped
+        if len(existingFiles):
+            self.display_exception("%s files have been skipped" % len(existingFiles), ["The following files have already been uploaded :", "", "\n\n".join(existingFiles)])
 
+        #Check there are still files to upload
+        if len(dataDict):
+            #Trigger the upload
+            self._shotgunUploader.uploadFiles(self, self._context, dataDict)
+        else :
+            #There's nothing to upload. Just go to the success page.
+            self.showWidgetWithID(7)
 
     def progressCancelButtonHit(self):
 
@@ -482,6 +503,41 @@ class Dialog(QtGui.QDialog):
         self.showWidgetWithID(5)
 
 
+    '''
+
+    Check for duplicate versions
+
+    '''
+
+    def getAllExistingVersionPaths(self):
+
+        #Setup filters and fields for the search
+        filters = [['project', 'is', self._context.project]]
+        versionFields = ['id', 'code', 'sg_path_to_movie', 'sg_path_to_frames']
+        publishFields = ['id', 'code', 'path']
+
+        #Do the search
+        existingVersions = self._shotgun.find('Version', filters, versionFields)
+        existingPublishes = self._shotgun.find('PublishedFile', filters, publishFields)
+
+        #Isolate the paths
+        allVersionPaths = []
+        allPublishPaths = []
+        for version in existingVersions:
+            if version['sg_path_to_movie'] != None :
+                allVersionPaths.append(version['sg_path_to_movie'])
+            if version['sg_path_to_frames'] != None :
+                allVersionPaths.append(version['sg_path_to_frames'])
+        for publishedFile in existingPublishes :
+            if publishedFile['path']['local_path'] != None :
+                allPublishPaths.append(publishedFile['path']['local_path'])
+
+        #Remove duplicates
+        allVersionPaths = list(set(allVersionPaths))
+        allPublishPaths = list(set(allPublishPaths))
+
+        return allVersionPaths + allPublishPaths
+
 
     '''
 
@@ -501,6 +557,7 @@ class Dialog(QtGui.QDialog):
         Nuke Script - nk
         Other - ANYTHING ELSE
         Photoshop File - psd, psb
+        Premiere File - prproj
         Quicktime - mp4, mov
         '''
         fileName, fileExtensionWithDot = os.path.splitext(os.path.basename(fileString))
@@ -535,6 +592,9 @@ class Dialog(QtGui.QDialog):
 
         if fileExtension in ['mov', 'mp4']:
             return 'Quicktime'
+
+        if fileExtension in ['prproj']:
+            return 'Premiere File'
 
         return "Other"
 
