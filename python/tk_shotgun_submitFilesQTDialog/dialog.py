@@ -135,9 +135,9 @@ class Dialog(QtGui.QDialog):
         #Check paths exist
         self._entityPaths = self.checkPathsExist()
         if not self._entityPaths:
-            self.display_exception("No paths exist for this asset", [])
+            self.display_exception("Shotgun cannot find this %s on disk. Check the details for instructions!" % self._entity['type'], ["This could be a known bug in Shotgun.", "", "To fix, in your browser, first go to Projects/%s/Assets and find '%s' (you can always use the search in the top-right corner)." % (self._context.project['name'], self._entity['name']), "", "Right-click in the grey section underneath the name, and choose 'Create Folders' from the drop-down.", "", "When that process completes, hit ok, and try this Submit process again.", "", "If that still doesn't work, please chat to your producer about using the 'Create Folders' command on this %s" % self._entity['type']])
             self.close()
-            return
+            return False
 
         #Store reference to chosen app on auto path
         self._auto_chosenApp = None
@@ -628,9 +628,7 @@ class Dialog(QtGui.QDialog):
         msg_box.setText(msg)
         msg_box.setDetailedText("\n".join(exec_info))
         msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
-        msg_box.show()
-        msg_box.raise_()
-        msg_box.activateWindow()
+        ret = msg_box.exec_()
 
     #Ensure that esc will close the dialog
     def keyPressEvent(self, evt):
