@@ -54,34 +54,48 @@ class CopyFileToOutputFolderThread(QtCore.QThread):
         self._filesToCopy = filesToCopy
         self._conceptMode = conceptMode
         self._newPaths = []
+        self._log = ""
 
     def run(self):
+
+        #Get the date folder name
+        dateFolderName = time.strftime("%y%m%d")
+        self.log("Date : %s" % dateFolderName)
+
         #Do the copy
         for fileToCopy in self._filesToCopy :
 
-            #Get the date folder name
-            dateFolderName = time.strftime("%y%m%d")
+            self.log("Working on file %s" % fileToCopy)
 
             #Get the copy path/dest path
             if self._conceptMode:
                 destCopyPath = os.path.join(self._dialog._conceptFolderPath, dateFolderName, os.path.split(fileToCopy)[1])
+                self.log("   Concept Dest path : %s" % destCopyPath)
             else :
-                destCopyPath = os.path.join(os.path.split(fileToCopy)[0], dateFolderName, "__OUTPUT", os.path.split(fileToCopy)[1])
+                closestOutputDirectory = self._dialog.findClosestOutputDirectory(fileToCopy)
+                self.log("   Closest Output Dir : %s" % closestOutputDirectory)
+                destCopyPath = os.path.join(closestOutputDirectory, dateFolderName, os.path.split(fileToCopy)[1])
+                self.log("   Dest path : %s" % destCopyPath)
 
             #Make the folder if it doesn't exist
             if not os.path.exists(os.path.split(destCopyPath)[0]):
+                self.log("   Making directories")
                 os.mkdir(os.path.split(destCopyPath)[0])
 
             #Check we need to do the copy
             if os.path.exists(destCopyPath):
+                self.log("   File already exists. Skipping.")
                 continue
 
             #Do the copy
             try : 
+                self.log("   About to copy.")
                 shutil.copyfile(fileToCopy, destCopyPath)
+                self.log("   Copy complete")
 
                 #Store the dest path
                 self._newPaths.append(destCopyPath)
+                self.log("   Path store")
 
             except Exception as e : 
                 self._dialog._errors.append(e)
@@ -93,6 +107,9 @@ class CopyFileToOutputFolderThread(QtCore.QThread):
 
     def stop(self):
         self.terminate()
+
+    def log(self, msg):
+        self._log += "%s\n" % msg
 
 class Dialog(QtGui.QDialog):
 
@@ -113,6 +130,7 @@ class Dialog(QtGui.QDialog):
         self._app = sgtk.platform.current_bundle()
         self._tank = self._app.tank
         self._shotgun = self._app.shotgun
+        self._sgtk = self._app.sgtk
 
         self._conceptMode = self._app.get_setting("concept_mode")
         if self._conceptMode:
@@ -132,10 +150,14 @@ class Dialog(QtGui.QDialog):
         #Store reference to entity
         self._entity = self._context.entity
 
+        #Sync the filesystem structure
+        self._tank.synchronize_filesystem_structure(full_sync=True)
+
         #Check paths exist
         self._entityPaths = self.checkPathsExist()
+
         if not self._entityPaths:
-            self.display_exception("Shotgun cannot find this %s on disk. Check the details for instructions!" % self._entity['type'], ["This could be a known bug in Shotgun.", "", "To fix, in your browser, first go to Projects/%s/Assets and find '%s' (you can always use the search in the top-right corner)." % (self._context.project['name'], self._entity['name']), "", "Right-click in the grey section underneath the name, and choose 'Create Folders' from the drop-down.", "", "When that process completes, hit ok, and try this Submit process again.", "", "If that still doesn't work, please chat to your producer about using the 'Create Folders' command on this %s" % self._entity['type']])
+            self.display_exception("Shotgun cannot find this %s on disk. Please chat to your producer about using the 'Create Folders' command." % self._entity['type'], [])
             self.close()
             return False
 
@@ -154,6 +176,8 @@ class Dialog(QtGui.QDialog):
         #Setup shotgun uploader
         self._shotgunUploader = ShotgunUploader()
 
+        #Store prroject path
+        self._projectPath = self._tank.project_path
 
         try : 
 
@@ -277,7 +301,11 @@ class Dialog(QtGui.QDialog):
             startDirectory = self._conceptFolderPath
             title = "Select Concept to Submit"
         else : 
-            startDirectory = self._entityPaths[0]
+            validDirs = [x for x in self._entityPaths if 'reference' not in x and 'plate' not in x and 'camera' not in x]
+            if len(validDirs):
+                startDirectory = validDirs[0]
+            else :
+                startDirectory = self._projectPath
             title = "Select file to Submit"
 
         #File Browser
@@ -293,24 +321,24 @@ class Dialog(QtGui.QDialog):
         self._files = fNames
         self._chosenFiles = fNames
 
-        #Check if the file is within the required directory (projectdir for concepts, entity dir for entities)
-        if self._entityPaths[0] not in self._chosenFiles[0]:
-            self.display_exception("Files not in Asset Directory", ["The files you have chosen don't exist within the current Asset's directory structure, and cannot be submitted."])
+        #Check if the file is within the project directory (projectdir for concepts, entity dir for entities)
+        if self._projectPath not in self._chosenFiles[0]:
+            self.display_exception("Files not in Project Directory", ["The files you have chosen don't exist within the current Project's directory structure, and cannot be submitted."])
             return
 
         #Check whether the file is in an output folder
-        isInCorrectFolder = False
+        isInOutputFolder = False
         if self._conceptMode:
             #Just check if __OUTPUT is in the filename and that the file is in the concept folder somewhere
             if ('__OUTPUT' in self._chosenFiles[0]) and (self._conceptFolderPath in self._chosenFiles[0]):
-                isInCorrectFolder = True
+                isInOutputFolder = True
         else : 
             #Check if the chosen file is in the correct entity folder, and in an OUTPUT folder
-            if self._entityPaths[0] in self._chosenFiles[0] and "__OUTPUT" in self._chosenFiles[0]:
-                isInCorrectFolder = True
+            if "__OUTPUT" in self._chosenFiles[0]:
+                isInOutputFolder = True
 
         #React to file location
-        if isInCorrectFolder :
+        if isInOutputFolder :
             #The chosen files ARE in an output directory. Go straight to the info page
             self._fileInfoWidget.updateLabel()
             self.showWidgetWithID(5)
@@ -321,16 +349,39 @@ class Dialog(QtGui.QDialog):
                 #Get the path from the appBundle
                 closestOutputFolderPath = self._conceptFolderPath
             else : 
-                closestOutputFolderPath = os.path.join(os.path.split(self._chosenFiles[0])[0], "__OUTPUT")
+                closestOutputFolderPath = self.findClosestOutputDirectory(self._chosenFiles[0])
 
             #Check it exists
-            if not os.path.exists(closestOutputFolderPath):
+            if closestOutputFolderPath == None or not os.path.exists(closestOutputFolderPath):
                 self.display_exception("Cannot find an associated __OUTPUT Folder for these files", ["The files you have chosen are not within a directory that contains an __OUTPUT folder. This means that it is NOT in a valid working directory and cannot be uploaded to Shotgun.", "", "Please ensure that you always work in a valid directory."])
                 return
 
             #File is in a valid working directory. Show copy page.
             self._fileNotInOutputFolderWidget.updateLabel()
             self.showWidgetWithID(6)
+
+
+    def findClosestOutputDirectory(self, startDir):
+        #Given startDir, moves up the directory structure looking for the closest __OUTPUT directory for the files
+        #hard code to begin with
+        outputPath = os.path.join(startDir, "__OUTPUT")
+        if os.path.exists(outputPath):
+            return outputPath
+
+        outputPath = os.path.join(os.path.split(startDir)[0], "__OUTPUT")
+        if os.path.exists(outputPath):
+            return outputPath
+
+        outputPath = os.path.join(os.path.split(os.path.split(startDir)[0])[0], "__OUTPUT")
+        if os.path.exists(outputPath):
+            return outputPath
+
+        outputPath = os.path.join(os.path.split(os.path.split(os.path.split(startDir)[0])[0])[0], "__OUTPUT")
+        if os.path.exists(outputPath):
+            return outputPath
+
+        return None
+
 
 
     '''
@@ -352,7 +403,6 @@ class Dialog(QtGui.QDialog):
         except Exception as e :
             self.display_exception("THREAD ERROR", [e])
             return
-
 
 
     def copyCompleted(self):
