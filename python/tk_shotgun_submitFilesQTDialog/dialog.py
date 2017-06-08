@@ -579,7 +579,8 @@ class Dialog(QtGui.QDialog):
             if version['sg_path_to_frames'] != None :
                 allVersionPaths.append(version['sg_path_to_frames'])
         for publishedFile in existingPublishes :
-            if publishedFile['path']['local_path'] != None :
+            path = publishedFile['path']
+            if path.get('local_path') is not None:
                 allPublishPaths.append(publishedFile['path']['local_path'])
 
         #Remove duplicates
